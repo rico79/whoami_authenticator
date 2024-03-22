@@ -13,6 +13,6 @@ pub struct HelloQuery {
     pub name: String,
 }
 
-pub async fn hello_world(Query(params): Query<HelloQuery>) -> HelloTemplate {
+pub async fn handler(Query(params): Query<HelloQuery>) -> HelloTemplate {
     HelloTemplate { name: params.name }
 }
