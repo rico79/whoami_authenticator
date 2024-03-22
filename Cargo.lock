@@ -142,6 +142,7 @@ dependencies = [
  "askama",
  "askama_axum",
  "axum 0.7.4",
+ "serde",
  "shuttle-axum",
  "shuttle-runtime",
  "tokio",
