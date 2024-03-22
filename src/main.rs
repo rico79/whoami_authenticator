@@ -1,7 +1,14 @@
+use askama_axum::Template;
 use axum::{routing::get, Router};
 
-async fn hello_world() -> &'static str {
-    "Hello, world!"
+#[derive(Template)]
+#[template(path = "hello.html")]
+struct HelloTemplate {
+    name: String,
+}
+
+async fn hello_world() -> HelloTemplate {
+    HelloTemplate { name: "world".to_string() }
 }
 
 #[shuttle_runtime::main]
