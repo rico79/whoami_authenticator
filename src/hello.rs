@@ -4,15 +4,15 @@ use serde::Deserialize;
 
 #[derive(Template)]
 #[template(path = "hello.html")]
-pub struct HelloTemplate {
+pub struct PageTemplate {
     name: String,
 }
 
 #[derive(Deserialize)]
-pub struct HelloQuery {
+pub struct RequestQuery {
     pub name: String,
 }
 
-pub async fn handler(Query(params): Query<HelloQuery>) -> HelloTemplate {
-    HelloTemplate { name: params.name }
+pub async fn handler(Query(params): Query<RequestQuery>) -> PageTemplate {
+    PageTemplate { name: params.name }
 }
