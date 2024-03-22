@@ -1,28 +1,10 @@
-use askama_axum::Template;
-use axum::{extract::Query, routing::get, Router};
-use serde::Deserialize;
+mod hello;
+
+use axum::{routing::get, Router};
 
 #[shuttle_runtime::main]
 async fn main() -> shuttle_axum::ShuttleAxum {
-    let router = Router::new().route("/hello", get(hello_world));
+    let router = Router::new().route("/hello", get(hello::hello_world));
 
     Ok(router.into())
-}
-
-// Hello world handler
-#[derive(Template)]
-#[template(path = "hello.html")]
-struct HelloTemplate {
-    name: String,
-}
-
-#[derive(Deserialize)]
-pub struct HelloQuery {
-	pub name: String,
-}
-
-async fn hello_world(Query(params): Query<HelloQuery>) -> HelloTemplate {
-    HelloTemplate {
-        name: params.name,
-    }
 }
