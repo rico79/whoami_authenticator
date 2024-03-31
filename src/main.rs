@@ -1,8 +1,6 @@
 mod hello;
 mod index;
-mod signin;
-mod signout;
-mod signup;
+mod connection;
 
 use axum::{routing::get, Router};
 use tower_http::services::ServeDir;
@@ -14,11 +12,11 @@ async fn main() -> shuttle_axum::ShuttleAxum {
         .route("/hello", get(hello::get_handler))
         .route(
             "/signup",
-            get(signup::get_handler).post(signup::submit_handler),
+            get(connection::signup::get_handler).post(connection::signup::submit_handler),
         )
         .route(
             "/signin",
-            get(signin::get_handler).post(signin::submit_handler),
+            get(connection::signin::get_handler).post(connection::signin::submit_handler),
         )
         .nest_service("/assets", ServeDir::new("assets"));
 

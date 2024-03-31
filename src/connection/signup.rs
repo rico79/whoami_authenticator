@@ -1,7 +1,7 @@
 use askama_axum::Template;
 
 #[derive(Template)]
-#[template(path = "signup.html")]
+#[template(path = "connect/signup.html")]
 pub struct PageTemplate {}
 
 pub async fn get_handler() -> PageTemplate {
