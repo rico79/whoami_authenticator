@@ -16,6 +16,10 @@ async fn main() -> shuttle_axum::ShuttleAxum {
             "/signup",
             get(signup::get_handler).post(signup::submit_handler),
         )
+        .route(
+            "/signin",
+            get(signin::get_handler).post(signin::submit_handler),
+        )
         .nest_service("/assets", ServeDir::new("assets"));
 
     Ok(router.into())
