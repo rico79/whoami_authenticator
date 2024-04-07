@@ -13,6 +13,6 @@ pub struct RequestQuery {
     pub name: String,
 }
 
-pub async fn get_handler(Query(params): Query<RequestQuery>) -> PageTemplate {
+pub async fn get(Query(params): Query<RequestQuery>) -> PageTemplate {
     PageTemplate { name: params.name }
 }

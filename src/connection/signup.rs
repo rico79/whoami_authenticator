@@ -4,10 +4,10 @@ use askama_axum::Template;
 #[template(path = "connect/signup.html")]
 pub struct PageTemplate {}
 
-pub async fn get_handler() -> PageTemplate {
+pub async fn get() -> PageTemplate {
     PageTemplate {}
 }
 
-pub async fn submit_handler() -> PageTemplate {
+pub async fn post() -> PageTemplate {
     PageTemplate {}
 }
