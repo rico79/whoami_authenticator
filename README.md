@@ -15,8 +15,7 @@ cargo shuttle login
 ```
 
 ## VSCode extensions
-- rust-analyzer
-- GitLab Workflow
+- rust-analyzer 
 - Even Better TOML
 
 ## To build and run the app

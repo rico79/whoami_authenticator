@@ -5,9 +5,10 @@ mod index;
 use axum::{routing::get, Router};
 use tower_http::services::ServeDir;
 
+// App HTTP server
 #[shuttle_runtime::main]
-async fn http_server() -> shuttle_axum::ShuttleAxum {
-    // Define router for http server
+async fn http_server() -> shuttle_axum::ShuttleAxum {    
+    // Define router with state for http server
     let router = Router::new()
         .route("/", get(index::get))
         .route("/hello", get(hello::get))
