@@ -13,6 +13,8 @@
     <div class="ui hidden divider"></div>
 
     <form class="ui form" method="POST">
+        <div class="ui error message"></div>
+
         <div class="field">
             <label>Nom</label>
             <input class="input" type="text" name="name" placeholder="ex: Yoda" />
@@ -26,6 +28,10 @@
         <div class="field">
             <label class="label">Mot de passe</label>
             <input class="input" type="password" name="password" placeholder="********" />
+        </div>
+
+        <div class="field">
+            <label class="label">Confirmez le mot de passe</label>
             <input class="input" type="password" name="confirm_password" placeholder="********" />
         </div>
 
@@ -38,4 +44,53 @@
         </a>
     </form>
 </div>
+
+<script>
+    $('.ui.form').form({
+        fields: {
+            name: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veillez rentrer votre nom'
+                    }
+                ]
+            },
+            email: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veillez rentrer votre email'
+                    },
+                    {
+                        type: 'regExp',
+                        value: /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/,
+                        prompt: 'Veillez rentrer une adresse mail valide'
+                    }
+                ]
+            },
+            password: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veillez rentrer votre mot de passe'
+                    }
+                ]
+            },
+            confirm_password: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veillez confirmer votre mot de passe'
+                    },
+                    {
+                        type: 'match[password]',
+                        prompt: 'La confirmation du mot de passe ne correspond pas'
+
+                    }
+                ]
+            },
+        }
+    });
+</script>
 {% endblock %}
