@@ -10,13 +10,6 @@ pub struct PageTemplate {
 }
 
 pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
-    if let Some(name) = params.get("name") {
-        PageTemplate {
-            name: name.to_string(),
-        }
-    } else {
-        PageTemplate {
-            name: "you".to_owned(),
-        }
-    }
+    let name = params.get("name").unwrap_or(&"you".to_owned()).to_string();
+    PageTemplate { name }
 }

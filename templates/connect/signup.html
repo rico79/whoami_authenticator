@@ -12,17 +12,32 @@
 
     <div class="ui hidden divider"></div>
 
+    {% if error.len() > 0 -%}
+    <div class="ui negative message">
+        <i class="close icon"></i>
+        <div class="header">
+            Inscription impossible
+        </div>
+        {{ error }}
+    </div>
+    <script>
+        $('.message .close').on('click', function () {
+            $(this).closest('.message').transition('fade');
+        });
+    </script>
+    {% endif -%}
+
     <form class="ui form" method="POST">
         <div class="ui error message"></div>
 
         <div class="field">
             <label>Nom</label>
-            <input class="input" type="text" name="name" placeholder="ex: Yoda" />
+            <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
         </div>
 
         <div class="field">
             <label class="label">Email</label>
-            <input class="input" type="email" name="email" placeholder="ex: yoda@dagobah.edu" />
+            <input class="input" type="email" name="email" value="{{ email }}" placeholder="ex: yoda@dagobah.edu" />
         </div>
 
         <div class="field">
