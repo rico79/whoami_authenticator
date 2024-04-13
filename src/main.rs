@@ -3,11 +3,12 @@ mod hello;
 mod index;
 
 use axum::{routing::get, Router};
+use shuttle_runtime::CustomError;
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     db_pool: PgPool,
 }
 
@@ -19,6 +20,12 @@ async fn http_server(
     )]
     db_pool: PgPool,
 ) -> shuttle_axum::ShuttleAxum {
+    // Init or update the database (migrations)
+    sqlx::migrate!()
+        .run(&db_pool)
+        .await
+        .map_err(CustomError::new)?;
+
     // Prepare the app state
     let state = AppState { db_pool };
 

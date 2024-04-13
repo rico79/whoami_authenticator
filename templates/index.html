@@ -1,18 +1,20 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="section">
-    <div class="container">
-        <h1 class="title">
-            Brouclean Softwares Authenticator
-        </h1>
-        <p class="subtitle">
+<div class="ui container">
+    <h1 class="ui header">
+        Brouclean Softwares Authenticator
+        <div class="sub header">
             Connectez vous et profitez de nos Apps!
-        </p>
-        <p class="buttons">
-            <a class="button is-link" href="signup">Inscrivez vous</a>
-            <a class="button is-link" href="signin">Connectez vous</a>
-        </p>
-    </div>
-</section>
+        </div>
+    </h1>
+    <section>
+        <a class="ui primary button" href="signup">
+            Inscrivez vous
+        </a>
+        <a class="ui primary button" href="signin">
+            Connectez vous
+        </a>
+    </section>
+</div>
 {% endblock %}

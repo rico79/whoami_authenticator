@@ -1,32 +1,43 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="section">
-    <div class="container">
-        <form class="box">
-            <div class="field">
-                <label class="label">Email</label>
-                <div class="control">
-                    <input class="input" type="email" placeholder="ex: nom@domaine.com" />
-                </div>
-            </div>
+<div class="ui container">
+    <div class="ui hidden divider"></div>
 
-            <div class="field">
-                <label class="label">Mot de passe</label>
-                <div class="control">
-                    <input class="input" type="password" placeholder="********" />
-                </div>
-            </div>
+    <h2 class="ui center aligned icon header">
+        <i class="circular users icon"></i>
+        Authenticator
+        <div class="sub header">
+            Inscrivez vous!
+        </div>
+    </h2>
 
-            <div class="field">
-                <label class="label">Confirmation du mot de passe</label>
-                <div class="control">
-                    <input class="input" type="confirm_password" placeholder="********" />
-                </div>
-            </div>
-            
-            <button class="button is-primary">Inscription</button>
-        </form>
-    </div>
-</section>
+    <div class="ui hidden divider"></div>
+
+    <form class="ui form" method="POST">
+        <div class="field">
+            <label>Nom</label>
+            <input class="input" type="text" name="name" placeholder="ex: Yoda" />
+        </div>
+
+        <div class="field">
+            <label class="label">Email</label>
+            <input class="input" type="email" name="email" placeholder="ex: yoda@dagobah.edu" />
+        </div>
+
+        <div class="field">
+            <label class="label">Mot de passe</label>
+            <input class="input" type="password" name="password" placeholder="********" />
+            <input class="input" type="password" name="confirm_password" placeholder="********" />
+        </div>
+
+        <button class="ui primary button">
+            S'inscrire
+        </button>
+
+        <a class="ui button" href="/">
+            Annuler
+        </a>
+    </form>
+</div>
 {% endblock %}

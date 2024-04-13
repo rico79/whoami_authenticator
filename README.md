@@ -43,17 +43,18 @@ CREATE ROLE devapp LOGIN PASSWORD 'devapp';
 \q
 ```
 
+If you want to connect from your own user you will have to change the local config to "trust" in the pg_hba.conf
+```
+sudo gnome-text-editor /var/lib/pgsql/data/pg_hba.conf
+```
+
 Create the database
 ```
 sudo -u postgres psql
 CREATE DATABASE authenticator;
+ALTER DATABASE authenticator OWNER TO devapp;
 \l
 \q
-```
-
-If you want to connect from your own user you will have to change the local config to "trust" in the pg_hba.conf
-```
-sudo gnome-text-editor /var/lib/pgsql/data/pg_hba.conf
 ```
 
 ## VSCode extensions

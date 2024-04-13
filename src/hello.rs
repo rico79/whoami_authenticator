@@ -1,11 +1,11 @@
-use askama_axum::Template;
+use askama_axum::{IntoResponse, Template};
 use axum::extract::Query;
 use serde::Deserialize;
 
 #[derive(Template)]
 #[template(path = "hello.html")]
 pub struct PageTemplate {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Deserialize)]
@@ -13,6 +13,9 @@ pub struct RequestQuery {
     pub name: String,
 }
 
-pub async fn get(Query(params): Query<RequestQuery>) -> PageTemplate {
-    PageTemplate { name: params.name }
+pub async fn get(query: Option<Query<RequestQuery>>) -> impl IntoResponse {
+    match query {
+        Some(Query(params)) => PageTemplate { name: params.name },
+        None => PageTemplate { name: "you".to_owned() },
+    }
 }

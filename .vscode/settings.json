@@ -5,8 +5,9 @@
             "server": "localhost",
             "port": 5432,
             "driver": "PostgreSQL",
-            "name": "Authenticator",
+            "name": "authenticator",
             "database": "authenticator",
+            "group": "local",
             "username": "devapp",
             "password": "devapp"
         }
