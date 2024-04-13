@@ -27,21 +27,32 @@ pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<UserCreationForm>,
 ) -> impl IntoResponse {
-    // Insert the user
-    let query_result =
-        sqlx::query("INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id")
-            .bind(&form.name)
-            .bind(&form.email)
-            .bind(&form.password)
-            .fetch_one(&state.db_pool)
-            .await;
+    // Check if data are correct
+    if !&form.name.is_empty()
+        && !&form.email.is_empty()
+        && !&form.password.is_empty()
+        && !&form.confirm_password.is_empty()
+        && &form.password == &form.confirm_password
+    {
+        // Insert the user
+        let query_result = sqlx::query(
+            "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id",
+        )
+        .bind(&form.name)
+        .bind(&form.email)
+        .bind(&form.password)
+        .fetch_one(&state.db_pool)
+        .await;
 
-    // Check the result
-    match query_result {
-        Ok(row) => {
-            let user_id = row.get::<i32, &str>("id");
-            Redirect::to(&format!("/hello?name={}", user_id))
+        // Check the result
+        match query_result {
+            Ok(row) => {
+                let user_id = row.get::<i32, &str>("id");
+                Redirect::to(&format!("/hello?name={}", user_id))
+            }
+            Err(error) => Redirect::to(&format!("/signup?error={}", error)),
         }
-        Err(error) => Redirect::to(&format!("/signup?error={}", error)),
+    } else {
+        Redirect::to("/signup?error=ImpossibleToCreate")
     }
 }
