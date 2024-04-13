@@ -58,17 +58,18 @@ pub async fn post(
                 let user_id = row.get::<i32, &str>("id");
                 Redirect::to(&format!("/hello?name={}", user_id))
             }
-            Err(error) => match error {
-                sqlx::Error::Database(database_error) => {
-                    // If it is a unique violation error, it means that the user mail already existed
-                    if database_error.is_unique_violation() {
-                        Redirect::to(&format!("/signup?error={:?}", Error::AlreadyExistingUser))
-                    } else {
-                        Redirect::to(&format!("/signup?error={:?}", Error::Database(sqlx::Error::Database(database_error))))
-                    }
+            Err(sqlx::Error::Database(database_error)) => {
+                // If it is a unique violation error, it means that the user mail already existed
+                if database_error.is_unique_violation() {
+                    Redirect::to(&format!("/signup?error={:?}", Error::AlreadyExistingUser))
+                } else {
+                    Redirect::to(&format!(
+                        "/signup?error={:?}",
+                        Error::Database(sqlx::Error::Database(database_error))
+                    ))
                 }
-                _ => Redirect::to(&format!("/signup?error={:?}", Error::Database(error))),
-            },
+            }
+            Err(error) => Redirect::to(&format!("/signup?error={:?}", Error::Database(error))),
         }
     } else {
         Redirect::to(&format!("/signup?error={:?}", Error::InvalidData))
