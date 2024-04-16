@@ -61,6 +61,19 @@ ALTER DATABASE authenticator OWNER TO devapp;
 - rust-analyzer 
 - Even Better TOML
 
+## Secrets structure
+For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for local dev) file containing
+```
+# Database
+DB_PASSWORD = "Your db user"
+
+# Emails
+MAIL_SMTP = "Your smtp url"
+MAIL_FROM = "Your from mail"
+MAIL_USER_NAME = "Your mailer user"
+MAIL_PASSWORD = "Your mailer password"
+```
+
 ## To build and run the app
 To run the app locally (localhost)
 ```
