@@ -9,7 +9,7 @@ use axum::{
 use serde::Deserialize;
 use sqlx::Row;
 
-use crate::AppState;
+use crate::{email::AppMailer, AppState};
 
 #[derive(Template)]
 #[template(path = "connect/signup.html")]
@@ -28,6 +28,7 @@ pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResp
 
     // Check error type to choose message to show
     let error = match query_error.as_str() {
+        "" => "".to_owned(),
         "AlreadyExistingUser" => format!("Le mail {} est déjà utilisé", email),
         "InvalidData" => "Veuillez corriger les informations remplies".to_owned(),
         _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
@@ -77,7 +78,13 @@ pub async fn post(
         // Check the result
         match query_result {
             Ok(row) => {
+                // Get the user id created
                 let user_id = row.get::<i32, &str>("id");
+
+                // Send the email for validation
+                send_validation_email(&state.mailer, form.name, form.email);
+
+                // Redirect
                 Redirect::to(&format!("/hello?name={}", user_id))
             }
             Err(sqlx::Error::Database(database_error)) => {
@@ -112,5 +119,17 @@ pub async fn post(
             &form.name,
             &form.email
         ))
+    }
+}
+
+// Validation mail sending
+fn send_validation_email(mailer: &AppMailer, user_name: String, user_email: String) {
+    match mailer.send(
+        format!("{} <{}>", user_name, user_email),
+        "Validez votre inscription".to_owned(),
+        "Validez votre inscription".to_owned(),
+    ) {
+        Ok(_) => println!("Email validation sent successfully to '{}'", user_email),
+        Err(error) => println!("Could not send email validation to '{}' : {:?}", user_email, error),
     }
 }

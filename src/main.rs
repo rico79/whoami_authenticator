@@ -1,15 +1,18 @@
 mod connection;
+mod email;
 mod hello;
 mod index;
 
 use axum::{routing::get, Router};
-use shuttle_runtime::CustomError;
+use email::AppMailer;
+use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
 #[derive(Clone)]
 pub struct AppState {
     db_pool: PgPool,
+    mailer: AppMailer,
 }
 
 // App HTTP server
@@ -19,6 +22,7 @@ async fn http_server(
         local_uri = "postgres://devapp:{secrets.DB_PASSWORD}@localhost:5432/authenticator"
     )]
     db_pool: PgPool,
+    #[shuttle_runtime::Secrets] secrets: SecretStore,
 ) -> shuttle_axum::ShuttleAxum {
     // Init or update the database (migrations)
     sqlx::migrate!()
@@ -26,8 +30,11 @@ async fn http_server(
         .await
         .map_err(CustomError::new)?;
 
-    // Prepare the app state
-    let state = AppState { db_pool };
+    // Init the mailer
+    let mailer = AppMailer::new(secrets);
+
+    // Set the app state
+    let state = AppState { db_pool, mailer };
 
     // Define router with state for http server
     let router = Router::new()
