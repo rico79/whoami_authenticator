@@ -75,6 +75,9 @@ MAIL_SMTP = "Your smtp url"
 MAIL_FROM = "Your from mail"
 MAIL_USER_NAME = "Your mailer user"
 MAIL_PASSWORD = "Your mailer password"
+
+# JWT
+JWT_SECRET = "Your JWT secret"
 ```
 
 ## To build and run the app

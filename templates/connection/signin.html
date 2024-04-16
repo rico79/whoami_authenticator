@@ -1,25 +1,52 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section class="section">
-    <div class="container">
-        <form class="box">
-            <div class="field">
-                <label class="label">Email</label>
-                <div class="control">
-                    <input class="input" type="email" placeholder="ex: yoda@dagobah.edu" />
-                </div>
-            </div>
+<div class="ui main container">
+    <h2 class="ui center aligned icon header">
+        <i class="circular users icon"></i>
+        Authenticator
+        <div class="sub header">
+            Connectez vous!
+        </div>
+    </h2>
 
-            <div class="field">
-                <label class="label">Mot de passe</label>
-                <div class="control">
-                    <input class="input" type="password" placeholder="********" />
-                </div>
-            </div>
+    <div class="ui hidden divider"></div>
 
-            <button class="button is-primary">Se connecter</button>
-        </form>
+    {% if error.len() > 0 -%}
+    <div class="ui negative message">
+        <i class="close icon"></i>
+        <div class="header">
+            Connexion impossible
+        </div>
+        {{ error }}
     </div>
-</section>
+    <script>
+        $('.message .close').on('click', function () {
+            $(this).closest('.message').transition('fade');
+        });
+    </script>
+    {% endif -%}
+
+    <form class="ui form" method="POST">
+        <div class="ui error message"></div>
+
+        <div class="field">
+            <label class="label">Email</label>
+            <input class="input" type="email" name="email" value="{{ email }}" placeholder="ex: yoda@dagobah.edu" />
+        </div>
+
+        <div class="field">
+            <label class="label">Mot de passe</label>
+            <input class="input" type="password" name="password" placeholder="********" />
+        </div>
+
+        <button class="ui primary button">
+            Se connecter
+        </button>
+
+        <a class="ui button" href="/">
+            Annuler
+        </a>
+    </form>
+</div>
 {% endblock %}

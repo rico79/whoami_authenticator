@@ -23,6 +23,17 @@ pub struct PageTemplate {
     email: String,
 }
 
+/** Singup errors
+ * List of the different errors that can occur during the signup process
+ */
+#[derive(Debug)]
+pub enum Error {
+    DatabaseError,
+    CryptoError,
+    InvalidData,
+    AlreadyExistingUser,
+}
+
 /** Get handler
  * Returns the page using the dedicated HTML template
  */
@@ -47,22 +58,11 @@ pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResp
  * Data expected from the signup form in order to create the user
  */
 #[derive(Deserialize)]
-pub struct UserCreationForm {
+pub struct SignupForm {
     name: String,
     email: String,
     password: String,
     confirm_password: String,
-}
-
-/** Singup errors
- * List of the different errors that can occur during the signup process
- */
-#[derive(Debug)]
-pub enum Error {
-    DatabaseError,
-    EncryptionError,
-    InvalidData,
-    AlreadyExistingUser,
 }
 
 /** Post handler
@@ -70,7 +70,7 @@ pub enum Error {
  */
 pub async fn post(
     State(state): State<AppState>,
-    Form(form): Form<UserCreationForm>,
+    Form(form): Form<SignupForm>,
 ) -> impl IntoResponse {
     // Check if data are correct
     if !&form.name.is_empty()
@@ -84,7 +84,7 @@ pub async fn post(
             Ok(encrypted_password) => {
                 // Insert the user
                 let query_result = sqlx::query(
-                    "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING user_id",
+                    "INSERT INTO users (name, email, encrypted_password) VALUES ($1, $2, $3) RETURNING user_id",
                 )
                 .bind(&form.name)
                 .bind(&form.email)
@@ -155,7 +155,7 @@ pub async fn post(
 
                 Redirect::to(&format!(
                     "/signup?error={:?}&name={}&email={}",
-                    Error::EncryptionError,
+                    Error::CryptoError,
                     &form.name,
                     &form.email
                 ))
