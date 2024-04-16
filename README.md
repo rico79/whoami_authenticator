@@ -38,7 +38,7 @@ sudo -u postgres psql
 Create an app user
 ```
 sudo -u postgres psql
-CREATE ROLE devapp LOGIN PASSWORD 'devapp';
+CREATE ROLE devapp LOGIN PASSWORD '<db user password>';
 \du
 \q
 ```
@@ -65,7 +65,7 @@ ALTER DATABASE authenticator OWNER TO devapp;
 For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for local dev) file containing
 ```
 # Database
-DB_PASSWORD = "Your db user"
+DB_PASSWORD = "Your db user password"
 
 # Emails
 MAIL_SMTP = "Your smtp url"
