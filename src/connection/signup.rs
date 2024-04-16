@@ -10,8 +10,11 @@ use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
 use tracing::error;
 
-use crate::{users::confirmation::send_confirmation_email, AppState};
+use crate::{crypto::encrypt_text, users::confirmation::send_confirmation_email, AppState};
 
+/** Template
+ * HTML page definition with dynamic data
+ */
 #[derive(Template)]
 #[template(path = "connection/signup.html")]
 pub struct PageTemplate {
@@ -20,6 +23,9 @@ pub struct PageTemplate {
     email: String,
 }
 
+/** Get handler
+ * Returns the page using the dedicated HTML template
+ */
 pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
     // Get data from query
     let query_error = params.get("error").unwrap_or(&"".to_owned()).to_string();
@@ -37,6 +43,9 @@ pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResp
     PageTemplate { error, name, email }
 }
 
+/** Signup form
+ * Data expected from the signup form in order to create the user
+ */
 #[derive(Deserialize)]
 pub struct UserCreationForm {
     name: String,
@@ -45,13 +54,20 @@ pub struct UserCreationForm {
     confirm_password: String,
 }
 
+/** Singup errors
+ * List of the different errors that can occur during the signup process
+ */
 #[derive(Debug)]
 pub enum Error {
-    Database(sqlx::Error),
+    DatabaseError,
+    EncryptionError,
     InvalidData,
     AlreadyExistingUser,
 }
 
+/** Post handler
+ * Process the signup form to create the user and send a confirmation email
+ */
 pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<UserCreationForm>,
@@ -63,60 +79,83 @@ pub async fn post(
         && !&form.confirm_password.is_empty()
         && &form.password == &form.confirm_password
     {
-        // Insert the user
-        let query_result = sqlx::query(
-            "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING user_id",
-        )
-        .bind(&form.name)
-        .bind(&form.email)
-        .bind(&form.password)
-        .fetch_one(&state.db_pool)
-        .await;
+        // Encrypt the password
+        match encrypt_text(&form.password) {
+            Ok(encrypted_password) => {
+                // Insert the user
+                let query_result = sqlx::query(
+                    "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING user_id",
+                )
+                .bind(&form.name)
+                .bind(&form.email)
+                .bind(encrypted_password)
+                .fetch_one(&state.db_pool)
+                .await;
 
-        // Check the result
-        match query_result {
-            Ok(row) => {
-                // Get the user id created
-                let user_id = row.get::<Uuid, &str>("user_id");
+                // Check the result
+                match query_result {
+                    Ok(row) => {
+                        // Get the user id created
+                        let user_id = row.get::<Uuid, &str>("user_id");
 
-                // Send the email for validation
-                send_confirmation_email(&state, &form.name, &form.email, &user_id.to_string());
+                        // Send the email for validation
+                        send_confirmation_email(
+                            &state,
+                            &form.name,
+                            &form.email,
+                            &user_id.to_string(),
+                        );
 
-                // Redirect
-                Redirect::to(&format!("/hello?name={}", form.name))
-            }
-            Err(sqlx::Error::Database(database_error)) => {
-                // If it is a unique violation error, it means that the user mail already existed
-                if database_error.is_unique_violation() {
-                    Redirect::to(&format!(
-                        "/signup?error={:?}&name={}&email={}",
-                        Error::AlreadyExistingUser,
-                        &form.name,
-                        &form.email
-                    ))
-                } else {
-                    error!(
-                        "Signup impossible for user {} due to db error: '{}'",
-                        &form.email, database_error
-                    );
+                        // Redirect
+                        Redirect::to(&format!("/hello?name={}", form.name))
+                    }
+                    Err(sqlx::Error::Database(database_error)) => {
+                        // If it is a unique violation error, it means that the user mail already existed
+                        if database_error.is_unique_violation() {
+                            Redirect::to(&format!(
+                                "/signup?error={:?}&name={}&email={}",
+                                Error::AlreadyExistingUser,
+                                &form.name,
+                                &form.email
+                            ))
+                        } else {
+                            error!(
+                                "Signup impossible for user {} due to db error: '{}'",
+                                &form.email, database_error
+                            );
 
-                    Redirect::to(&format!(
-                        "/signup?error={:?}&name={}&email={}",
-                        Error::Database(sqlx::Error::Database(database_error)),
-                        &form.name,
-                        &form.email
-                    ))
+                            Redirect::to(&format!(
+                                "/signup?error={:?}&name={}&email={}",
+                                Error::DatabaseError,
+                                &form.name,
+                                &form.email
+                            ))
+                        }
+                    }
+                    Err(error) => {
+                        error!(
+                            "Signup impossible for user {} due to db error: '{}'",
+                            &form.email, error
+                        );
+
+                        Redirect::to(&format!(
+                            "/signup?error={:?}&name={}&email={}",
+                            Error::DatabaseError,
+                            &form.name,
+                            &form.email
+                        ))
+                    }
                 }
             }
             Err(error) => {
                 error!(
-                    "Signup impossible for user {} due to db error: '{}'",
+                    "Signup impossible for user {} due to crypto error: '{}'",
                     &form.email, error
                 );
 
                 Redirect::to(&format!(
                     "/signup?error={:?}&name={}&email={}",
-                    Error::Database(error),
+                    Error::EncryptionError,
                     &form.name,
                     &form.email
                 ))

@@ -1,4 +1,5 @@
 mod connection;
+mod crypto;
 mod email;
 mod hello;
 mod index;
@@ -10,6 +11,9 @@ use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
+/** App state
+ * Data that can be used in the entire app
+ */
 #[derive(Clone)]
 pub struct AppState {
     app_url: String,
@@ -17,6 +21,9 @@ pub struct AppState {
     mailer: AppMailer,
 }
 
+/** Main function
+ * init and serve the app
+ */
 #[shuttle_runtime::main]
 async fn http_server(
     #[shuttle_shared_db::Postgres(

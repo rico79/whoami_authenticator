@@ -7,12 +7,18 @@ use tracing::error;
 
 use crate::AppState;
 
+/** Template
+ * HTML page definition with dynamic data
+ */
 #[derive(Template)]
 #[template(path = "users/confirmation.html")]
 pub struct PageTemplate {
     email_confirmed: String,
 }
 
+/** Get handler
+ * Returns the page using the dedicated HTML template
+ */
 pub async fn get(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
@@ -59,6 +65,9 @@ pub async fn get(
     }
 }
 
+/** Email confirmation sending
+ * Send the confirmation email to the user with the confirmation link to click (which will be handled by the get)
+ */
 pub fn send_confirmation_email(
     state: &AppState,
     user_name: &String,
@@ -70,11 +79,15 @@ pub fn send_confirmation_email(
     let subject = "Confirmez votre inscription".to_owned();
     let body = format!("Bonjour {},
         
-    Vous venez de vous inscrire à l'une des app de Brouclean Softwares.
-    Nous vous souhaitons la bienvenue.
-    
-    Pour pouvoir continuer et utiliser nos app, veuillez confirmer votre mail en cliquant sur le lien suivant :
-    {}",user_name,validation_url);
+Vous venez de vous inscrire à l'une des app de Brouclean Softwares.
+Nous vous souhaitons la bienvenue.
+
+Pour pouvoir continuer et utiliser nos app, veuillez confirmer votre mail en cliquant sur le lien suivant :
+{}
+
+En vous souhaitant une excellente journée !!
+
+L'équipe de Brouclean Softwares",user_name,validation_url);
 
     // Send email
     if let Err(error) = state
