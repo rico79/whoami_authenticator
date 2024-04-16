@@ -1,7 +1,7 @@
 use askama_axum::{IntoResponse, Template};
 
 #[derive(Template)]
-#[template(path = "connect/signin.html")]
+#[template(path = "connection/signin.html")]
 pub struct PageTemplate {}
 
 pub async fn get() -> impl IntoResponse {

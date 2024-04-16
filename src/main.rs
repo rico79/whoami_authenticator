@@ -2,6 +2,7 @@ mod connection;
 mod email;
 mod hello;
 mod index;
+mod users;
 
 use axum::{routing::get, Router};
 use email::AppMailer;
@@ -11,11 +12,11 @@ use tower_http::services::ServeDir;
 
 #[derive(Clone)]
 pub struct AppState {
+    app_url: String,
     db_pool: PgPool,
     mailer: AppMailer,
 }
 
-// App HTTP server
 #[shuttle_runtime::main]
 async fn http_server(
     #[shuttle_shared_db::Postgres(
@@ -24,6 +25,7 @@ async fn http_server(
     db_pool: PgPool,
     #[shuttle_runtime::Secrets] secrets: SecretStore,
 ) -> shuttle_axum::ShuttleAxum {
+    // S
     // Init or update the database (migrations)
     sqlx::migrate!()
         .run(&db_pool)
@@ -31,15 +33,16 @@ async fn http_server(
         .map_err(CustomError::new)?;
 
     // Init the mailer
-    let mailer = AppMailer::new(secrets);
+    let mailer = AppMailer::new(&secrets);
 
     // Set the app state
-    let state = AppState { db_pool, mailer };
+    let state = AppState { app_url: secrets.get("APP_URL").unwrap(), db_pool, mailer };
 
     // Define router with state for http server
     let router = Router::new()
         .route("/", get(index::get))
         .route("/hello", get(hello::get))
+        .route("/confirm", get(users::confirmation::get))
         .route(
             "/signup",
             get(connection::signup::get).post(connection::signup::post),

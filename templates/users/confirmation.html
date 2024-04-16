@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="ui main container">
+    <h2 class="ui center aligned icon header">
+        <i class="circular users icon"></i>
+        Authenticator
+        <div class="sub header">
+            Confirmation d'email
+        </div>
+    </h2>
+
+    <div class="ui hidden divider"></div>
+
+    {% if email_confirmed.len() > 0 -%}
+    <div class="ui success message">
+        <div class="header">
+            Email confirmé
+        </div>
+        Vous avez bien confirmé le mail suivant : {{ email_confirmed }}
+    </div>
+    {% else %}
+    <div class="ui negative message">
+        <div class="header">
+            Confirmation impossible
+        </div>
+        Le code de confirmation est inconnu
+    </div>
+    {% endif -%}
+
+</div>
+{% endblock %}

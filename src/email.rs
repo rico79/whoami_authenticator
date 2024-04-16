@@ -9,7 +9,7 @@ pub struct AppMailer {
 
 impl AppMailer {
     // Create the AppMailer struct from secrets
-    pub fn new(secrets: SecretStore) -> AppMailer {
+    pub fn new(secrets: &SecretStore) -> AppMailer {
         let mail_smtp = secrets.get("MAIL_SMTP").unwrap();
         let mail_from = secrets.get("MAIL_FROM").unwrap();
         let mail_user_name = secrets.get("MAIL_USER_NAME").unwrap();

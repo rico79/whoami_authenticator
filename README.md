@@ -64,6 +64,9 @@ ALTER DATABASE authenticator OWNER TO devapp;
 ## Secrets structure
 For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for local dev) file containing
 ```
+# General
+APP_URL = "http://127.0.0.1:8000"
+
 # Database
 DB_PASSWORD = "Your db user password"
 

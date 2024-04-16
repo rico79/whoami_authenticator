@@ -7,19 +7,19 @@ use axum::{
     Form,
 };
 use serde::Deserialize;
-use sqlx::Row;
+use sqlx::{types::Uuid, Row};
+use tracing::error;
 
-use crate::{email::AppMailer, AppState};
+use crate::{users::confirmation::send_confirmation_email, AppState};
 
 #[derive(Template)]
-#[template(path = "connect/signup.html")]
+#[template(path = "connection/signup.html")]
 pub struct PageTemplate {
     error: String,
     name: String,
     email: String,
 }
 
-// Signup form page
 pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
     // Get data from query
     let query_error = params.get("error").unwrap_or(&"".to_owned()).to_string();
@@ -45,7 +45,6 @@ pub struct UserCreationForm {
     confirm_password: String,
 }
 
-// User Creation Errors
 #[derive(Debug)]
 pub enum Error {
     Database(sqlx::Error),
@@ -53,7 +52,6 @@ pub enum Error {
     AlreadyExistingUser,
 }
 
-// User creation
 pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<UserCreationForm>,
@@ -67,7 +65,7 @@ pub async fn post(
     {
         // Insert the user
         let query_result = sqlx::query(
-            "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id",
+            "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING user_id",
         )
         .bind(&form.name)
         .bind(&form.email)
@@ -79,13 +77,13 @@ pub async fn post(
         match query_result {
             Ok(row) => {
                 // Get the user id created
-                let user_id = row.get::<i32, &str>("id");
+                let user_id = row.get::<Uuid, &str>("user_id");
 
                 // Send the email for validation
-                send_validation_email(&state.mailer, form.name, form.email);
+                send_confirmation_email(&state, &form.name, &form.email, &user_id.to_string());
 
                 // Redirect
-                Redirect::to(&format!("/hello?name={}", user_id))
+                Redirect::to(&format!("/hello?name={}", form.name))
             }
             Err(sqlx::Error::Database(database_error)) => {
                 // If it is a unique violation error, it means that the user mail already existed
@@ -97,6 +95,11 @@ pub async fn post(
                         &form.email
                     ))
                 } else {
+                    error!(
+                        "Signup impossible for user {} due to db error: '{}'",
+                        &form.email, database_error
+                    );
+
                     Redirect::to(&format!(
                         "/signup?error={:?}&name={}&email={}",
                         Error::Database(sqlx::Error::Database(database_error)),
@@ -105,12 +108,19 @@ pub async fn post(
                     ))
                 }
             }
-            Err(error) => Redirect::to(&format!(
-                "/signup?error={:?}&name={}&email={}",
-                Error::Database(error),
-                &form.name,
-                &form.email
-            )),
+            Err(error) => {
+                error!(
+                    "Signup impossible for user {} due to db error: '{}'",
+                    &form.email, error
+                );
+
+                Redirect::to(&format!(
+                    "/signup?error={:?}&name={}&email={}",
+                    Error::Database(error),
+                    &form.name,
+                    &form.email
+                ))
+            }
         }
     } else {
         Redirect::to(&format!(
@@ -119,17 +129,5 @@ pub async fn post(
             &form.name,
             &form.email
         ))
-    }
-}
-
-// Validation mail sending
-fn send_validation_email(mailer: &AppMailer, user_name: String, user_email: String) {
-    match mailer.send(
-        format!("{} <{}>", user_name, user_email),
-        "Validez votre inscription".to_owned(),
-        "Validez votre inscription".to_owned(),
-    ) {
-        Ok(_) => println!("Email validation sent successfully to '{}'", user_email),
-        Err(error) => println!("Could not send email validation to '{}' : {:?}", user_email, error),
     }
 }
