@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use askama_axum::{IntoResponse, Template};
 use axum::{
     extract::{Query, State},
@@ -10,23 +8,12 @@ use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
 use tracing::error;
 
-use crate::{crypto::encrypt_text, users::confirmation::send_confirmation_email, AppState};
-
-/** Template
- * HTML page definition with dynamic data
- */
-#[derive(Template)]
-#[template(path = "connection/signup.html")]
-pub struct PageTemplate {
-    error: String,
-    name: String,
-    email: String,
-}
+use crate::{crypto::encrypt_text, users::confirm::send_confirmation_email, AppState};
 
 /** Singup errors
  * List of the different errors that can occur during the signup process
  */
-#[derive(Debug)]
+#[derive(Debug, Deserialize)]
 pub enum Error {
     DatabaseError,
     CryptoError,
@@ -34,24 +21,47 @@ pub enum Error {
     AlreadyExistingUser,
 }
 
+/** Template
+ * HTML page definition with dynamic data
+ */
+#[derive(Template)]
+#[template(path = "connection/signup.html")]
+pub struct PageTemplate {
+    name: String,
+    email: String,
+    error: String,
+}
+
+/** Query parameters definition
+ * HTTP parameters used for the get Handler
+ */
+#[derive(Deserialize)]
+pub struct QueryParams {
+    name: Option<String>,
+    email: Option<String>,
+    error: Option<Error>,
+}
+
 /** Get handler
  * Returns the page using the dedicated HTML template
  */
-pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
-    // Get data from query
-    let query_error = params.get("error").unwrap_or(&"".to_owned()).to_string();
-    let name = params.get("name").unwrap_or(&"".to_owned()).to_string();
-    let email = params.get("email").unwrap_or(&"".to_owned()).to_string();
-
-    // Check error type to choose message to show
-    let error = match query_error.as_str() {
-        "" => "".to_owned(),
-        "AlreadyExistingUser" => format!("Le mail {} est déjà utilisé", email),
-        "InvalidData" => "Veuillez corriger les informations remplies".to_owned(),
+pub async fn get(Query(params): Query<QueryParams>) -> impl IntoResponse {
+    // Prepare error message
+    let error_message = match params.error {
+        None => "".to_owned(),
+        Some(Error::AlreadyExistingUser) => format!(
+            "Le mail {} est déjà utilisé",
+            params.email.clone().unwrap_or("".to_owned())
+        ),
+        Some(Error::InvalidData) => "Veuillez corriger les informations remplies".to_owned(),
         _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
     };
 
-    PageTemplate { error, name, email }
+    PageTemplate {
+        error: error_message,
+        name: params.name.unwrap_or("".to_owned()),
+        email: params.email.unwrap_or("".to_owned()),
+    }
 }
 
 /** Signup form

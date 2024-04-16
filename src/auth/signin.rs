@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use askama_axum::{IntoResponse, Template};
 use axum::{
     extract::{Query, State},
@@ -15,6 +13,18 @@ use crate::{
     AppState,
 };
 
+/** Singin errors
+ * List of the different errors that can occur during the signin process
+ */
+#[derive(Debug, Deserialize)]
+pub enum Error {
+    DatabaseError,
+    CryptoError,
+    InvalidData,
+    UnregisteredEmail,
+    WrongPassword,
+}
+
 /** Template
  * HTML page definition with dynamic data
  */
@@ -25,36 +35,35 @@ pub struct PageTemplate {
     email: String,
 }
 
-/** Singin errors
- * List of the different errors that can occur during the signin process
+/** Query parameters definition
+ * HTTP parameters used for the get Handler
  */
-#[derive(Debug)]
-pub enum Error {
-    DatabaseError,
-    CryptoError,
-    InvalidData,
-    UnregisteredEmail,
-    WrongPassword,
+#[derive(Deserialize)]
+pub struct QueryParams {
+    email: Option<String>,
+    error: Option<Error>,
 }
 
 /** Get handler
  * Returns the page using the dedicated HTML template
  */
-pub async fn get(Query(params): Query<HashMap<String, String>>) -> impl IntoResponse {
-    // Get data from query
-    let query_error = params.get("error").unwrap_or(&"".to_owned()).to_string();
-    let email = params.get("email").unwrap_or(&"".to_owned()).to_string();
-
-    // Check error type to choose message to show
-    let error = match query_error.as_str() {
-        "" => "".to_owned(),
-        "UnregisteredEmail" => format!("Le mail {} est inconnu", email),
-        "WrongPassword" => format!("Mauvais mot de passe"),
-        "InvalidData" => "Veuillez corriger les informations remplies".to_owned(),
+pub async fn get(Query(params): Query<QueryParams>) -> impl IntoResponse {
+    // Prepare error message
+    let error_message = match params.error {
+        None => "".to_owned(),
+        Some(Error::UnregisteredEmail) => format!(
+            "Le mail {} est inconnu",
+            params.email.clone().unwrap_or("".to_owned())
+        ),
+        Some(Error::WrongPassword) => format!("Mauvais mot de passe"),
+        Some(Error::InvalidData) => "Veuillez corriger les informations remplies".to_owned(),
         _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
     };
 
-    PageTemplate { error, email }
+    PageTemplate {
+        error: error_message,
+        email: params.email.unwrap_or("".to_owned()),
+    }
 }
 
 /** Signin form
