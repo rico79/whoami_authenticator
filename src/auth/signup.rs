@@ -10,9 +10,8 @@ use tracing::error;
 
 use crate::{crypto::encrypt_text, users::confirm::send_confirmation_email, AppState};
 
-/** Singup errors
- * List of the different errors that can occur during the signup process
- */
+/// Singup errors
+/// List of the different errors that can occur during the signup process
 #[derive(Debug, Deserialize)]
 pub enum Error {
     DatabaseError,
@@ -21,9 +20,8 @@ pub enum Error {
     AlreadyExistingUser,
 }
 
-/** Template
- * HTML page definition with dynamic data
- */
+/// Template
+/// HTML page definition with dynamic data
 #[derive(Template)]
 #[template(path = "connection/signup.html")]
 pub struct PageTemplate {
@@ -32,9 +30,8 @@ pub struct PageTemplate {
     error: String,
 }
 
-/** Query parameters definition
- * HTTP parameters used for the get Handler
- */
+/// Query parameters definition
+/// HTTP parameters used for the get Handler
 #[derive(Deserialize)]
 pub struct QueryParams {
     name: Option<String>,
@@ -42,9 +39,8 @@ pub struct QueryParams {
     error: Option<Error>,
 }
 
-/** Get handler
- * Returns the page using the dedicated HTML template
- */
+/// Get handler
+/// Returns the page using the dedicated HTML template
 pub async fn get(Query(params): Query<QueryParams>) -> impl IntoResponse {
     // Prepare error message
     let error_message = match params.error {
@@ -64,9 +60,8 @@ pub async fn get(Query(params): Query<QueryParams>) -> impl IntoResponse {
     }
 }
 
-/** Signup form
- * Data expected from the signup form in order to create the user
- */
+/// Signup form
+/// Data expected from the signup form in order to create the user
 #[derive(Deserialize)]
 pub struct SignupForm {
     name: String,
@@ -75,9 +70,8 @@ pub struct SignupForm {
     confirm_password: String,
 }
 
-/** Post handler
- * Process the signup form to create the user and send a confirmation email
- */
+/// Post handler
+/// Process the signup form to create the user and send a confirmation email
 pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<SignupForm>,

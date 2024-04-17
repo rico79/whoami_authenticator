@@ -1,19 +1,17 @@
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use shuttle_runtime::SecretStore;
 
-/** App mailer
- * Structure to use when an email has to be sent
- */
-#[derive(Clone)]
+/// App mailer
+/// Structure to use when an email has to be sent
+#[derive(Clone, Debug)]
 pub struct AppMailer {
     from: String,
     mailer: SmtpTransport,
 }
 
 impl AppMailer {
-    /** App mailer creation
-     * Create the AppMailer struct from secrets informations
-     */
+    //// App mailer creation
+    /// Create the AppMailer struct from secrets informations
     pub fn new(secrets: &SecretStore) -> AppMailer {
         let mail_smtp = secrets.get("MAIL_SMTP").unwrap();
         let mail_from = secrets.get("MAIL_FROM").unwrap();
@@ -33,9 +31,8 @@ impl AppMailer {
         }
     }
 
-    /** Send email
-     * Send an email to the receiver and the mail content passed in arguments
-     */
+    /// Send email
+    /// Send an email to the receiver and the mail content passed in arguments
     pub fn send(
         &self,
         to: String,

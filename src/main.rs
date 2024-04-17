@@ -5,16 +5,24 @@ mod hello;
 mod index;
 mod users;
 
-use axum::{routing::get, Router};
+use std::convert::Infallible;
+use std::fmt::Debug;
+
+use axum::{
+    async_trait,
+    extract::{FromRef, FromRequestParts},
+    http::request::Parts,
+    routing::get,
+    Router,
+};
 use email::AppMailer;
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
 
-/** App state
- * Data that can be used in the entire app
- */
-#[derive(Clone)]
+/// App state
+/// Data that can be used in the entire app
+#[derive(Clone, Debug)]
 pub struct AppState {
     app_url: String,
     db_pool: PgPool,
@@ -22,9 +30,23 @@ pub struct AppState {
     jwt_secret: String,
 }
 
-/** Main function
- * init and serve the app
- */
+/// Implement FromRequestParts
+/// FromRequestParts allows us to use the AppState without consuming the request
+#[async_trait]
+impl<S> FromRequestParts<S> for AppState
+where
+    Self: FromRef<S>,
+    S: Send + Sync + Debug,
+{
+    type Rejection = Infallible;
+
+    async fn from_request_parts(_parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        Ok(Self::from_ref(state))
+    }
+}
+
+/// Main function
+/// init and serve the app
 #[shuttle_runtime::main]
 async fn http_server(
     #[shuttle_shared_db::Postgres(
