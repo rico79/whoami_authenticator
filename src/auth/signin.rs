@@ -27,6 +27,7 @@ impl PageTemplate {
         // Prepare error message
         let error_message = match error {
             None => "".to_owned(),
+            Some(AuthError::InvalidToken) => "".to_owned(),
             Some(AuthError::WrongCredentials) => "Les données de connexion sont incorrectes".to_owned(),
             Some(AuthError::MissingCredentials) => {
                 "Veuillez remplir votre mail et votre mot de passe".to_owned()

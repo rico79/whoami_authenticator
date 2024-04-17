@@ -38,7 +38,7 @@ pub enum AuthError {
 /// iat = issued at -> date of the token generation
 /// exp = expiration -> end date of the token
 #[derive(Debug, Serialize, Deserialize)]
-struct JWTClaims {
+pub struct JWTClaims {
     sub: String,
     iss: String,
     iat: i64,
