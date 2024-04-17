@@ -121,8 +121,8 @@ pub async fn post(
                     PageTemplate::from(Some(form.email), Some(AuthError::TokenCreation))
                 })?;
 
-            // Redirect
-            Ok(Redirect::to(&format!("/hello?name={}", jwt)))
+            // Redirect to hello page
+            Ok(Redirect::to(&format!("/hello?message={}", jwt)))
         }
         // Wrong Password
         else {

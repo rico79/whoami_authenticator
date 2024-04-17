@@ -110,8 +110,8 @@ pub async fn post(
                             &user_id.to_string(),
                         );
 
-                        // Redirect
-                        Redirect::to(&format!("/hello?name={}", form.name))
+                        // Redirect to hello page
+                        Redirect::to(&format!("/hello?message={}", form.name))
                     }
                     Err(sqlx::Error::Database(database_error)) => {
                         // If it is a unique violation error, it means that the user mail already existed
