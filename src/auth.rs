@@ -36,10 +36,7 @@ pub enum AuthError {
 
 /// Remove session id from cookies
 /// Then redirect to an url
-pub fn remove_session_and_redirect(
-    cookies: CookieJar,
-    redirect_to: &str,
-) -> impl IntoResponse {
+pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
     (
         cookies.remove(Cookie::from("session_id")),
         Redirect::to(redirect_to),
@@ -65,7 +62,7 @@ pub async fn create_session_from_credentials_and_redirect(
 
     // Select the user with this email
     let query_result =
-        sqlx::query("SELECT user_id, encrypted_password FROM users WHERE email = $1")
+        sqlx::query("SELECT user_id, name, encrypted_password FROM users WHERE email = $1")
             .bind(email)
             .fetch_optional(&state.db_pool)
             .await
@@ -75,6 +72,7 @@ pub async fn create_session_from_credentials_and_redirect(
     if let Some(row) = query_result {
         // Get the user data
         let user_id = row.get::<Uuid, &str>("user_id");
+        let user_name = row.get::<String, &str>("name");
         let encrypted_password = row.get::<String, &str>("encrypted_password");
 
         // Check password
@@ -82,9 +80,14 @@ pub async fn create_session_from_credentials_and_redirect(
             .map_err(|_| AuthError::CryptoError)?
         {
             // Generate and return JWT
-            let jwt =
-                generate_encoded_jwt(user_id.to_string().as_str(), 120, state.jwt_secret.clone())
-                    .map_err(|_| AuthError::TokenCreation)?;
+            let jwt = generate_encoded_jwt(
+                user_id.to_string(),
+                user_name,
+                email.to_string(),
+                120,
+                state.jwt_secret.clone(),
+            )
+            .map_err(|_| AuthError::TokenCreation)?;
 
             // Return Redirect with cookie containing the session_id
             Ok((
@@ -110,22 +113,22 @@ pub async fn create_session_from_credentials_and_redirect(
 /// exp = expiration -> end date of the token
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JWTClaims {
-    sub: String,
+    pub sub: String,
+    pub name: String,
+    pub email: String,
     iss: String,
     iat: i64,
     exp: i64,
 }
 
-impl JWTClaims {
-    pub fn to_html(&self) -> String {
-        format!("User ID: {}<br>Issuing company: {}", self.sub, self.iss)
-    }
-}
-
 /// Allow us to print the claim details
 impl Display for JWTClaims {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "User ID: {}\nIssuing company: {}", self.sub, self.iss)
+        write!(
+            f,
+            "User ID: {} - Name: {} - Email: {} - Issuing company: {}",
+            self.sub, self.name, self.email, self.iss
+        )
     }
 }
 
@@ -176,7 +179,9 @@ where
 /// The subject to pass in argument is for example the mail of the authenticated user
 /// The token will expire after the nb of seconds passed in argument
 fn generate_encoded_jwt(
-    subject: &str,
+    subject: String,
+    user_name: String,
+    user_email: String,
     seconds_before_expiration: i64,
     secret: String,
 ) -> jsonwebtoken::errors::Result<String> {
@@ -186,7 +191,9 @@ fn generate_encoded_jwt(
 
     // Create token claims
     let claims = JWTClaims {
-        sub: subject.to_string(),
+        sub: subject,
+        name: user_name,
+        email: user_email,
         iss: String::from("Brouclean Softwares Authenticator"),
         iat: issued_at,
         exp: expiration,
