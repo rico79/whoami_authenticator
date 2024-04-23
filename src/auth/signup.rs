@@ -8,7 +8,7 @@ use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
 use tracing::error;
 
-use crate::{crypto::encrypt_text, users::confirm::send_confirmation_email, AppState};
+use crate::{utils::crypto::encrypt_text, users::confirm::send_confirmation_email, AppState};
 
 /// Singup errors
 /// List of the different errors that can occur during the signup process

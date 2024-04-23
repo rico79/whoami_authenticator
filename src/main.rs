@@ -1,9 +1,8 @@
 mod auth;
-mod crypto;
-mod email;
 mod hello;
 mod index;
 mod users;
+mod utils;
 
 use std::convert::Infallible;
 use std::fmt::Debug;
@@ -15,7 +14,7 @@ use axum::{
     routing::get,
     Router,
 };
-use email::AppMailer;
+use utils::email::AppMailer;
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;

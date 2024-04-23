@@ -20,7 +20,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
 
-use crate::crypto::verify_encrypted_text;
+use crate::utils::crypto::verify_encrypted_text;
 use crate::AppState;
 
 /// Error types for auth errors
