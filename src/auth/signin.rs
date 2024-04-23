@@ -71,6 +71,7 @@ pub struct SigninForm {
 
 /// Post handler
 /// Process the signin form to create a user session and redirect to the expected app
+/// If errors stay in page and alert with errors
 pub async fn post(
     cookies: CookieJar,
     State(state): State<AppState>,
