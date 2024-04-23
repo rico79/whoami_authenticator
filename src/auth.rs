@@ -11,10 +11,7 @@ use axum::{
     http::request::Parts,
     RequestPartsExt,
 };
-use axum_extra::{
-    headers::{authorization::Bearer, Authorization},
-    TypedHeader,
-};
+use axum_extra::extract::CookieJar;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -45,6 +42,12 @@ pub struct JWTClaims {
     exp: i64,
 }
 
+impl JWTClaims {
+    pub fn to_html(&self) -> String {
+        format!("User ID: {}<br>Issuing company: {}", self.sub, self.iss)
+    }
+}
+
 /// Allow us to print the claim details
 impl Display for JWTClaims {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,27 +66,35 @@ where
     type Rejection = signin::PageTemplate;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Extract the token from the authorization header
-        let TypedHeader(Authorization(bearer)) = parts
-            .extract::<TypedHeader<Authorization<Bearer>>>()
+        // Extract cookies
+        let jar = parts
+            .extract::<CookieJar>()
             .await
             .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
 
-        // Extract app state to get the jwt secret
-        let state = parts
-            .extract_with_state::<AppState, _>(state)
-            .await
+        // Extract token
+        if let Some(token) = jar.get("session_id") {
+            // Extract app state to get the jwt secret
+            let state = parts
+                .extract_with_state::<AppState, _>(state)
+                .await
+                .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
+
+            // Decode the user data
+            let token_data = decode::<JWTClaims>(
+                token.value(),
+                &DecodingKey::from_secret(state.jwt_secret.as_ref()),
+                &Validation::default(),
+            )
             .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
 
-        // Decode the user data
-        let token_data = decode::<JWTClaims>(
-            bearer.token(),
-            &DecodingKey::from_secret(state.jwt_secret.as_ref()),
-            &Validation::default(),
-        )
-        .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
-
-        Ok(token_data.claims)
+            Ok(token_data.claims)
+        } else {
+            Err(signin::PageTemplate::from(
+                None,
+                Some(AuthError::InvalidToken),
+            ))
+        }
     }
 }
 

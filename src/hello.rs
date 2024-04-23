@@ -14,6 +14,6 @@ pub struct PageTemplate {
 /// Returns the page using the dedicated HTML template
 pub async fn get(jwt_claims: JWTClaims) -> impl IntoResponse {
     PageTemplate {
-        message: jwt_claims.to_string(),
+        message: jwt_claims.to_html(),
     }
 }

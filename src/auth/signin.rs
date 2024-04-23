@@ -4,6 +4,7 @@ use axum::{
     response::Redirect,
     Form,
 };
+use axum_extra::extract::cookie::{Cookie, CookieJar};
 use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
 use tracing::error;
@@ -28,13 +29,15 @@ impl PageTemplate {
         let error_message = match error {
             None => "".to_owned(),
             Some(AuthError::InvalidToken) => "".to_owned(),
-            Some(AuthError::WrongCredentials) => "Les données de connexion sont incorrectes".to_owned(),
+            Some(AuthError::WrongCredentials) => {
+                "Les données de connexion sont incorrectes".to_owned()
+            }
             Some(AuthError::MissingCredentials) => {
                 "Veuillez remplir votre mail et votre mot de passe".to_owned()
             }
             _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
         };
-    
+
         PageTemplate {
             error: error_message,
             email: email.unwrap_or("".to_owned()),
@@ -72,12 +75,16 @@ pub struct SigninForm {
 /// Post handler
 /// Process the signin form to create a user session and redirect to the expected app
 pub async fn post(
+    cookies: CookieJar,
     State(state): State<AppState>,
     Form(form): Form<SigninForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
     // Check if missing credentials
     if form.email.is_empty() || form.password.is_empty() {
-        return Err(PageTemplate::from(Some(form.email.clone()), Some(AuthError::MissingCredentials)));
+        return Err(PageTemplate::from(
+            Some(form.email.clone()),
+            Some(AuthError::MissingCredentials),
+        ));
     }
 
     // Select the user with this email
@@ -121,16 +128,25 @@ pub async fn post(
                     PageTemplate::from(Some(form.email), Some(AuthError::TokenCreation))
                 })?;
 
-            // Redirect to hello page
-            Ok(Redirect::to(&format!("/hello?message={}", jwt)))
+            // Redirect with cookie
+            Ok((
+                cookies.add(Cookie::new("session_id", jwt)),
+                Redirect::to("/hello"),
+            ))
         }
         // Wrong Password
         else {
-            return Err(PageTemplate::from(Some(form.email), Some(AuthError::WrongCredentials)));
+            return Err(PageTemplate::from(
+                Some(form.email),
+                Some(AuthError::WrongCredentials),
+            ));
         }
     }
     // No user found
     else {
-        return Err(PageTemplate::from(Some(form.email), Some(AuthError::WrongCredentials)));
+        return Err(PageTemplate::from(
+            Some(form.email),
+            Some(AuthError::WrongCredentials),
+        ));
     }
 }
