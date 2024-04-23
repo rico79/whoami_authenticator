@@ -11,5 +11,6 @@
             "username": "devapp",
             "password": "devapp"
         }
-    ]
+    ],
+    "rust-analyzer.checkOnSave": true
 }

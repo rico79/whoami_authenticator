@@ -7,13 +7,15 @@ use crate::auth::JWTClaims;
 #[derive(Template)]
 #[template(path = "hello.html")]
 pub struct PageTemplate {
-    pub name: String,
+    claims: JWTClaims,
+    name: String,
 }
 
 /// Get handler
 /// Returns the page using the dedicated HTML template
-pub async fn get(jwt_claims: JWTClaims) -> impl IntoResponse {
+pub async fn get(claims: JWTClaims) -> impl IntoResponse {
     PageTemplate {
-        name: jwt_claims.name,
+        name: claims.name.clone(),
+        claims: claims,
     }
 }

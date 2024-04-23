@@ -2,12 +2,9 @@
 
 {% block content %}
 <div class="ui main text container">
-    <h1 class="ui header">
-        Brouclean Softwares Authenticator
-        <div class="sub header">
-            Bienvenue!
-        </div>
-    </h1>
+    {% include "navbar.html" %}
+
+    <h2 class="ui center aligned header">Bienvenue!</h2>
     <p>Bonjour {{ name }}</p>
 </div>
 {% endblock %}

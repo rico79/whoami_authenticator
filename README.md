@@ -77,6 +77,7 @@ MAIL_USER_NAME = "Your mailer user"
 MAIL_PASSWORD = "Your mailer password"
 
 # JWT
+JWT_EXPIRE_SECONDS = "3600"
 JWT_SECRET = "Your JWT secret"
 ```
 

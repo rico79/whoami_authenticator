@@ -26,6 +26,7 @@ pub struct AppState {
     app_url: String,
     db_pool: PgPool,
     mailer: AppMailer,
+    jwt_expire: i64,
     jwt_secret: String,
 }
 
@@ -68,6 +69,7 @@ async fn http_server(
         app_url: secrets.get("APP_URL").unwrap(),
         db_pool,
         mailer,
+        jwt_expire: secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
         jwt_secret: secrets.get("JWT_SECRET").unwrap(),
     };
 

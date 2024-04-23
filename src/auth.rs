@@ -84,7 +84,7 @@ pub async fn create_session_from_credentials_and_redirect(
                 user_id.to_string(),
                 user_name,
                 email.to_string(),
-                120,
+                state.jwt_expire.clone(),
                 state.jwt_secret.clone(),
             )
             .map_err(|_| AuthError::TokenCreation)?;
