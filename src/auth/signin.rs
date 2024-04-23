@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::AppState;
 
-use super::{create_session_cookie_from_credentials_and_redirect, AuthError};
+use super::{create_session_from_credentials_and_redirect, AuthError};
 
 /// Template
 /// HTML page definition with dynamic data
@@ -77,7 +77,7 @@ pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<SigninForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
-    create_session_cookie_from_credentials_and_redirect(
+    create_session_from_credentials_and_redirect(
         cookies,
         &state,
         &form.email,

@@ -34,12 +34,24 @@ pub enum AuthError {
     InvalidToken,
 }
 
+/// Remove session id from cookies
+/// Then redirect to an url
+pub fn remove_session_and_redirect(
+    cookies: CookieJar,
+    redirect_to: &str,
+) -> impl IntoResponse {
+    (
+        cookies.remove(Cookie::from("session_id")),
+        Redirect::to(redirect_to),
+    )
+}
+
 /// Create session id in cookies if user credentials are Ok
 /// Then redirect to an url
 /// Use the cookies and the App state
 /// Get email and password and the url for redirect
 /// Return session id wich is a JWT or an AuthError
-pub async fn create_session_cookie_from_credentials_and_redirect(
+pub async fn create_session_from_credentials_and_redirect(
     cookies: CookieJar,
     state: &AppState,
     email: &String,
