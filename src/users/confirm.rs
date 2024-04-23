@@ -10,7 +10,7 @@ use crate::AppState;
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "users/confirmation.html")]
+#[template(path = "users/confirm.html")]
 pub struct PageTemplate {
     email_confirmed: String,
 }
