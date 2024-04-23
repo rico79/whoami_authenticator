@@ -5,17 +5,22 @@ pub mod signup;
 use std::fmt::Debug;
 use std::fmt::Display;
 
+use askama_axum::IntoResponse;
+use axum::response::Redirect;
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
     RequestPartsExt,
 };
+use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use sqlx::{types::Uuid, Row};
 
+use crate::crypto::verify_encrypted_text;
 use crate::AppState;
 
 /// Error types for auth errors
@@ -27,6 +32,63 @@ pub enum AuthError {
     MissingCredentials,
     TokenCreation,
     InvalidToken,
+}
+
+/// Create session id in cookies if user credentials are Ok
+/// Then redirect to an url
+/// Use the cookies and the App state
+/// Get email and password and the url for redirect
+/// Return session id wich is a JWT or an AuthError
+pub async fn create_session_cookie_from_credentials_and_redirect(
+    cookies: CookieJar,
+    state: &AppState,
+    email: &String,
+    password: &String,
+    redirect_to: &str,
+) -> Result<impl IntoResponse, AuthError> {
+    // Check if missing credentials
+    if email.is_empty() || password.is_empty() {
+        return Err(AuthError::MissingCredentials);
+    }
+
+    // Select the user with this email
+    let query_result =
+        sqlx::query("SELECT user_id, encrypted_password FROM users WHERE email = $1")
+            .bind(email)
+            .fetch_optional(&state.db_pool)
+            .await
+            .map_err(|_| AuthError::DatabaseError)?;
+
+    // Check if there is a user selected
+    if let Some(row) = query_result {
+        // Get the user data
+        let user_id = row.get::<Uuid, &str>("user_id");
+        let encrypted_password = row.get::<String, &str>("encrypted_password");
+
+        // Check password
+        if verify_encrypted_text(password, &encrypted_password)
+            .map_err(|_| AuthError::CryptoError)?
+        {
+            // Generate and return JWT
+            let jwt =
+                generate_encoded_jwt(user_id.to_string().as_str(), 120, state.jwt_secret.clone())
+                    .map_err(|_| AuthError::TokenCreation)?;
+
+            // Return Redirect with cookie containing the session_id
+            Ok((
+                cookies.add(Cookie::new("session_id", jwt)),
+                Redirect::to(redirect_to),
+            ))
+        }
+        // Wrong Password
+        else {
+            Err(AuthError::WrongCredentials)
+        }
+    }
+    // No user found
+    else {
+        Err(AuthError::WrongCredentials)
+    }
 }
 
 /// JWT claims struct
@@ -101,7 +163,7 @@ where
 /// Generate an encoded JSON Web Token
 /// The subject to pass in argument is for example the mail of the authenticated user
 /// The token will expire after the nb of seconds passed in argument
-pub fn generate_encoded_jwt(
+fn generate_encoded_jwt(
     subject: &str,
     seconds_before_expiration: i64,
     secret: String,

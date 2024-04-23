@@ -1,16 +1,14 @@
 use askama_axum::{IntoResponse, Template};
 use axum::{
     extract::{Query, State},
-    response::Redirect,
     Form,
 };
-use axum_extra::extract::cookie::{Cookie, CookieJar};
+use axum_extra::extract::cookie::CookieJar;
 use serde::Deserialize;
-use sqlx::{types::Uuid, Row};
 
-use crate::{crypto::verify_encrypted_text, AppState};
+use crate::AppState;
 
-use super::{generate_encoded_jwt, AuthError};
+use super::{create_session_cookie_from_credentials_and_redirect, AuthError};
 
 /// Template
 /// HTML page definition with dynamic data
@@ -87,61 +85,4 @@ pub async fn post(
     )
     .await
     .map_err(|error| PageTemplate::from(Some(form.email), Some(error)))
-}
-
-/// Create session id in cookies if user credentials are Ok
-/// Then redirect to an url
-/// Use the cookies and the App state
-/// Get email and password and the url for redirect
-/// Return session id wich is a JWT or an AuthError
-pub async fn create_session_cookie_from_credentials_and_redirect(
-    cookies: CookieJar,
-    state: &AppState,
-    email: &String,
-    password: &String,
-    redirect_to: &str,
-) -> Result<impl IntoResponse, AuthError> {
-    // Check if missing credentials
-    if email.is_empty() || password.is_empty() {
-        return Err(AuthError::MissingCredentials);
-    }
-
-    // Select the user with this email
-    let query_result =
-        sqlx::query("SELECT user_id, encrypted_password FROM users WHERE email = $1")
-            .bind(email)
-            .fetch_optional(&state.db_pool)
-            .await
-            .map_err(|_| AuthError::DatabaseError)?;
-
-    // Check if there is a user selected
-    if let Some(row) = query_result {
-        // Get the user data
-        let user_id = row.get::<Uuid, &str>("user_id");
-        let encrypted_password = row.get::<String, &str>("encrypted_password");
-
-        // Check password
-        if verify_encrypted_text(password, &encrypted_password)
-            .map_err(|_| AuthError::CryptoError)?
-        {
-            // Generate and return JWT
-            let jwt =
-                generate_encoded_jwt(user_id.to_string().as_str(), 120, state.jwt_secret.clone())
-                    .map_err(|_| AuthError::TokenCreation)?;
-
-            // Return Redirect with cookie containing the session_id
-            Ok((
-                cookies.add(Cookie::new("session_id", jwt)),
-                Redirect::to(redirect_to),
-            ))
-        }
-        // Wrong Password
-        else {
-            Err(AuthError::WrongCredentials)
-        }
-    }
-    // No user found
-    else {
-        Err(AuthError::WrongCredentials)
-    }
 }
