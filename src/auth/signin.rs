@@ -7,7 +7,6 @@ use axum::{
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
-use tracing::error;
 
 use crate::{crypto::verify_encrypted_text, AppState};
 
@@ -79,28 +78,41 @@ pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<SigninForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
+    create_session_cookie_from_credentials_and_redirect(
+        cookies,
+        &state,
+        &form.email,
+        &form.password,
+        "/hello",
+    )
+    .await
+    .map_err(|error| PageTemplate::from(Some(form.email), Some(error)))
+}
+
+/// Create session id in cookies if user credentials are Ok
+/// Then redirect to an url
+/// Use the cookies and the App state
+/// Get email and password and the url for redirect
+/// Return session id wich is a JWT or an AuthError
+pub async fn create_session_cookie_from_credentials_and_redirect(
+    cookies: CookieJar,
+    state: &AppState,
+    email: &String,
+    password: &String,
+    redirect_to: &str,
+) -> Result<impl IntoResponse, AuthError> {
     // Check if missing credentials
-    if form.email.is_empty() || form.password.is_empty() {
-        return Err(PageTemplate::from(
-            Some(form.email.clone()),
-            Some(AuthError::MissingCredentials),
-        ));
+    if email.is_empty() || password.is_empty() {
+        return Err(AuthError::MissingCredentials);
     }
 
     // Select the user with this email
     let query_result =
         sqlx::query("SELECT user_id, encrypted_password FROM users WHERE email = $1")
-            .bind(&form.email)
+            .bind(email)
             .fetch_optional(&state.db_pool)
             .await
-            .map_err(|error| {
-                error!(
-                    "Signin impossible for user {} due to db error: '{}'",
-                    &form.email, error
-                );
-
-                PageTemplate::from(Some(form.email.clone()), Some(AuthError::DatabaseError))
-            })?;
+            .map_err(|_| AuthError::DatabaseError)?;
 
     // Check if there is a user selected
     if let Some(row) = query_result {
@@ -109,44 +121,27 @@ pub async fn post(
         let encrypted_password = row.get::<String, &str>("encrypted_password");
 
         // Check password
-        if verify_encrypted_text(&form.password, &encrypted_password).map_err(|error| {
-            error!(
-                "Signin impossible for user {} due to crypto error: '{}'",
-                &form.email, error
-            );
+        if verify_encrypted_text(password, &encrypted_password)
+            .map_err(|_| AuthError::CryptoError)?
+        {
+            // Generate and return JWT
+            let jwt =
+                generate_encoded_jwt(user_id.to_string().as_str(), 120, state.jwt_secret.clone())
+                    .map_err(|_| AuthError::TokenCreation)?;
 
-            PageTemplate::from(Some(form.email.clone()), Some(AuthError::CryptoError))
-        })? {
-            // Generate JWT
-            let jwt = generate_encoded_jwt(user_id.to_string().as_str(), 120, state.jwt_secret)
-                .map_err(|error| {
-                    error!(
-                        "Signin impossible for user {} due to JWT creation error: '{}'",
-                        &form.email, error
-                    );
-
-                    PageTemplate::from(Some(form.email), Some(AuthError::TokenCreation))
-                })?;
-
-            // Redirect with cookie
+            // Return Redirect with cookie containing the session_id
             Ok((
                 cookies.add(Cookie::new("session_id", jwt)),
-                Redirect::to("/hello"),
+                Redirect::to(redirect_to),
             ))
         }
         // Wrong Password
         else {
-            return Err(PageTemplate::from(
-                Some(form.email),
-                Some(AuthError::WrongCredentials),
-            ));
+            Err(AuthError::WrongCredentials)
         }
     }
     // No user found
     else {
-        return Err(PageTemplate::from(
-            Some(form.email),
-            Some(AuthError::WrongCredentials),
-        ));
+        Err(AuthError::WrongCredentials)
     }
 }
