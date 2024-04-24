@@ -1,18 +1,24 @@
-<div class="ui text menu">
-    <div class="item">
-        <img src="assets/images/logo_white.png">
-    </div>
+<div class="ui attached borderless menu">
+    <div class="ui container">
+        <div class="item">
+            <img src="assets/images/logo_white.png">
+        </div>
 
-    <a class="header item" href="/">Authenticator</a>
+        <a class="header item" href="/">Authenticator</a>
 
-    <div class="ui right dropdown item">
-        <div class="text">{{ claims.name }}</div>
-        <i class="dropdown icon"></i>
-        <div class="menu">
-            <a class="item" href="/signout">
-                <i class="sign-out icon"></i>
-                Se déconnecter
-            </a>
+        <div class="ui right dropdown item">
+            <div class="text">{{ claims.name }}</div>
+            <i class="dropdown icon"></i>
+            <div class="menu">
+                <a class="item" href="/welcome">
+                    <i class="home icon"></i>
+                    Bienvenue
+                </a>
+                <a class="item" href="/signout">
+                    <i class="sign-out icon"></i>
+                    Se déconnecter
+                </a>
+            </div>
         </div>
     </div>
 </div>

@@ -3,7 +3,7 @@ use askama_axum::{IntoResponse, Template};
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "index.html")]
+#[template(path = "general/home.html")]
 pub struct PageTemplate {}
 
 /// Get handler

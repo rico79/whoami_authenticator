@@ -106,5 +106,5 @@ pub async fn post(
     send_confirmation_email(&state, &form.name, &form.email, &user_id);
 
     // Connect the user and redirect
-    Ok(Redirect::to("/hello"))
+    Ok(Redirect::to("/welcome"))
 }

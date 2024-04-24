@@ -5,7 +5,7 @@ use crate::auth::JWTClaims;
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "hello.html")]
+#[template(path = "general/welcome.html")]
 pub struct PageTemplate {
     claims: JWTClaims,
     name: String,

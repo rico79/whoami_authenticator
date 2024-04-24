@@ -20,6 +20,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
 
+use crate::apps::redirect_to_app_welcome;
 use crate::utils::crypto::verify_encrypted_text;
 use crate::AppState;
 
@@ -53,7 +54,7 @@ pub async fn create_session_from_credentials_and_redirect(
     state: &AppState,
     email: &String,
     password: &String,
-    redirect_to: &str,
+    app_id: &String,
 ) -> Result<impl IntoResponse, AuthError> {
     // Check if missing credentials
     if email.is_empty() || password.is_empty() {
@@ -92,7 +93,7 @@ pub async fn create_session_from_credentials_and_redirect(
             // Return Redirect with cookie containing the session_id
             Ok((
                 cookies.add(Cookie::new("session_id", jwt)),
-                Redirect::to(redirect_to),
+                redirect_to_app_welcome(Some(app_id.to_string())),
             ))
         }
         // Wrong Password
@@ -144,34 +145,43 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         // Extract cookies
-        let jar = parts
+        let cookies = parts
             .extract::<CookieJar>()
             .await
-            .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
+            .map_err(|_| signin::PageTemplate::from(None, None, Some(AuthError::InvalidToken)))?;
+
+        // Extract app state to get the jwt secret
+        let state = parts
+            .extract_with_state::<AppState, _>(state)
+            .await
+            .map_err(|_| signin::PageTemplate::from(None, None, Some(AuthError::InvalidToken)))?;
 
         // Extract token
-        if let Some(token) = jar.get("session_id") {
-            // Extract app state to get the jwt secret
-            let state = parts
-                .extract_with_state::<AppState, _>(state)
-                .await
-                .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
+        get_claims_from_cookies(&state, &cookies)
+            .map_err(|error| signin::PageTemplate::from(None, None, Some(error)))
+    }
+}
 
-            // Decode the user data
-            let token_data = decode::<JWTClaims>(
-                token.value(),
-                &DecodingKey::from_secret(state.jwt_secret.as_ref()),
-                &Validation::default(),
-            )
-            .map_err(|_| signin::PageTemplate::from(None, Some(AuthError::InvalidToken)))?;
+/// Get claims from cookies
+/// Get the app state and cookie jar
+/// return claims
+pub fn get_claims_from_cookies(
+    state: &AppState,
+    cookies: &CookieJar,
+) -> Result<JWTClaims, AuthError> {
+    // Extract token
+    if let Some(token) = cookies.get("session_id") {
+        // Decode the user data
+        let token_data = decode::<JWTClaims>(
+            token.value(),
+            &DecodingKey::from_secret(state.jwt_secret.as_ref()),
+            &Validation::default(),
+        )
+        .map_err(|_| AuthError::InvalidToken)?;
 
-            Ok(token_data.claims)
-        } else {
-            Err(signin::PageTemplate::from(
-                None,
-                Some(AuthError::InvalidToken),
-            ))
-        }
+        Ok(token_data.claims)
+    } else {
+        Err(AuthError::InvalidToken)
     }
 }
 

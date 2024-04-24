@@ -1,6 +1,6 @@
+mod apps;
 mod auth;
-mod hello;
-mod index;
+mod general;
 mod users;
 mod utils;
 
@@ -14,10 +14,10 @@ use axum::{
     routing::get,
     Router,
 };
-use utils::email::AppMailer;
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
+use utils::email::AppMailer;
 
 /// App state
 /// Data that can be used in the entire app
@@ -75,8 +75,8 @@ async fn http_server(
 
     // Define router with state for http server
     let router = Router::new()
-        .route("/", get(index::get))
-        .route("/hello", get(hello::get))
+        .route("/", get(general::home::get))
+        .route("/welcome", get(general::welcome::get))
         .route("/confirm", get(users::confirm::get))
         .route("/signup", get(auth::signup::get).post(auth::signup::post))
         .route("/signin", get(auth::signin::get).post(auth::signin::post))
