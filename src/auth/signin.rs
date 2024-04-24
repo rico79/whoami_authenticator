@@ -6,7 +6,7 @@ use axum::{
 use axum_extra::extract::cookie::CookieJar;
 use serde::Deserialize;
 
-use crate::{apps::redirect_to_app_welcome, AppState};
+use crate::{apps::App, AppState};
 
 use super::{create_session_from_credentials_and_redirect, get_claims_from_cookies, AuthError};
 
@@ -17,16 +17,12 @@ use super::{create_session_from_credentials_and_redirect, get_claims_from_cookie
 pub struct PageTemplate {
     error: String,
     email: String,
-    app_id: String,
+    app: App,
 }
 
 impl PageTemplate {
     /// Generate page from data
-    pub fn from(
-        email: Option<String>,
-        app_id: Option<String>,
-        error: Option<AuthError>,
-    ) -> PageTemplate {
+    pub fn from(email: Option<String>, app: App, error: Option<AuthError>) -> PageTemplate {
         // Prepare error message
         let error_message = match error {
             None => "".to_owned(),
@@ -43,13 +39,13 @@ impl PageTemplate {
         PageTemplate {
             error: error_message,
             email: email.unwrap_or("".to_owned()),
-            app_id: app_id.unwrap_or("".to_owned()),
+            app,
         }
     }
 
     /// Generate page from query params
-    pub fn from_query(params: QueryParams) -> PageTemplate {
-        Self::from(params.email, params.app_id, params.error)
+    pub fn from_query(params: QueryParams, app: App) -> PageTemplate {
+        Self::from(params.email, app, params.error)
     }
 }
 
@@ -64,13 +60,19 @@ pub struct QueryParams {
 
 /// Get handler
 /// Returns the page using the dedicated HTML template
-pub async fn get(cookies: CookieJar, 
-    State(state): State<AppState>,Query(params): Query<QueryParams>) -> impl IntoResponse {
+pub async fn get(
+    cookies: CookieJar,
+    State(state): State<AppState>,
+    Query(params): Query<QueryParams>,
+) -> impl IntoResponse {
+    // Get app to connect to
+    let app = App::from_app_id(params.app_id.clone().unwrap_or("".to_owned()));
+
     // Check if already connected
     if get_claims_from_cookies(&state, &cookies).is_ok() {
-        redirect_to_app_welcome(params.app_id).into_response()
+        app.redirect_to_welcome().into_response()
     } else {
-        PageTemplate::from_query(params).into_response()
+        PageTemplate::from_query(params, app).into_response()
     }
 }
 
@@ -99,5 +101,7 @@ pub async fn post(
         &form.app_id,
     )
     .await
-    .map_err(|error| PageTemplate::from(Some(form.email), Some(form.app_id), Some(error)))
+    .map_err(|error| {
+        PageTemplate::from(Some(form.email), App::from_app_id(form.app_id), Some(error))
+    })
 }

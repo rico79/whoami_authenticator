@@ -10,7 +10,8 @@ pub mod confirm;
 pub enum UserError {
     DatabaseError,
     CryptoError,
-    InvalidData,
+    MissingInformation,
+    PasswordsMatch,
     AlreadyExistingUser,
 }
 
@@ -25,14 +26,19 @@ pub async fn create_user(
     password: &String,
     confirm_password: &String,
 ) -> Result<String, UserError> {
-    // Check if missing data and if password does not match confirmation
+    // Check if missing data
     if name.is_empty()
         || email.is_empty()
         || password.is_empty()
         || confirm_password.is_empty()
-        || password != confirm_password
     {
-        return Err(UserError::InvalidData);
+        return Err(UserError::MissingInformation);
+    }
+
+    // Check if password does not match confirmation
+    if password != confirm_password
+    {
+        return Err(UserError::PasswordsMatch);
     }
 
     // Encrypt the password

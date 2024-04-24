@@ -1,17 +1,40 @@
 use axum::response::Redirect;
 
-/// App redirection
-/// Redirect to the app welcome page when signed-in
-/// Get the app id to redirect to
-pub fn redirect_to_app_welcome(app_id: Option<String>) -> Redirect {
-    // If there is no app id redirect to authenticator welcome page
-    if app_id.is_some_and(|app_id| app_id.len() > 0) {
-        // Get app welcome page
+/// App struct
+#[derive(Clone, Debug)]
+pub struct App {
+    pub app_id: String,
+    pub name: String,
+    welcome_url: String,
+    pub logo_url: String,
+}
 
-        // Redirect
-        Redirect::to("/welcome")
-    } else {
-        // Authenticator welcome page
-        Redirect::to("/welcome")
+impl App {
+    /// Get authenticator app
+    pub fn authenticator_app() -> Self {
+        App {
+            app_id: "".to_owned(),
+            name: "Authenticator".to_owned(),
+            welcome_url: "/welcome".to_owned(),
+            logo_url: "assets/images/logo.png".to_owned(),
+        }
+    }
+
+    /// Get app from id
+    pub fn from_app_id(app_id: String) -> Self {
+        if app_id.len() > 0 {
+            // Get App
+
+            // Return values
+            Self::authenticator_app()
+        } else {
+            Self::authenticator_app()
+        }
+    }
+
+    /// App redirection
+    /// Redirect to the app welcome page
+    pub fn redirect_to_welcome(&self) -> Redirect {
+        Redirect::to(&self.welcome_url)
     }
 }

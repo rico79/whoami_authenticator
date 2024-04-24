@@ -20,7 +20,7 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
 
-use crate::apps::redirect_to_app_welcome;
+use crate::apps::App;
 use crate::utils::crypto::verify_encrypted_text;
 use crate::AppState;
 
@@ -93,7 +93,7 @@ pub async fn create_session_from_credentials_and_redirect(
             // Return Redirect with cookie containing the session_id
             Ok((
                 cookies.add(Cookie::new("session_id", jwt)),
-                redirect_to_app_welcome(Some(app_id.to_string())),
+                App::from_app_id(app_id.to_string()).redirect_to_welcome(),
             ))
         }
         // Wrong Password
@@ -145,20 +145,30 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         // Extract cookies
-        let cookies = parts
-            .extract::<CookieJar>()
-            .await
-            .map_err(|_| signin::PageTemplate::from(None, None, Some(AuthError::InvalidToken)))?;
+        let cookies = parts.extract::<CookieJar>().await.map_err(|_| {
+            signin::PageTemplate::from(
+                None,
+                App::authenticator_app(),
+                Some(AuthError::InvalidToken),
+            )
+        })?;
 
         // Extract app state to get the jwt secret
         let state = parts
             .extract_with_state::<AppState, _>(state)
             .await
-            .map_err(|_| signin::PageTemplate::from(None, None, Some(AuthError::InvalidToken)))?;
+            .map_err(|_| {
+                signin::PageTemplate::from(
+                    None,
+                    App::authenticator_app(),
+                    Some(AuthError::InvalidToken),
+                )
+            })?;
 
         // Extract token
-        get_claims_from_cookies(&state, &cookies)
-            .map_err(|error| signin::PageTemplate::from(None, None, Some(error)))
+        get_claims_from_cookies(&state, &cookies).map_err(|error| {
+            signin::PageTemplate::from(None, App::authenticator_app(), Some(error))
+        })
     }
 }
 
