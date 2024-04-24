@@ -1,4 +1,4 @@
-<div class="ui attached borderless menu">
+<div class="ui borderless menu">
     <div class="ui container">
         <div class="item">
             <img src="assets/images/logo.png">
@@ -6,6 +6,7 @@
 
         <a class="header item" href="/">Authenticator</a>
 
+        {% if let Some(claims) = claims -%}
         <div class="ui right dropdown item">
             <div class="text">{{ claims.name }}</div>
             <i class="dropdown icon"></i>
@@ -20,6 +21,14 @@
                 </a>
             </div>
         </div>
+        {% else %}
+        <div class="right menu">
+            <a class="item" href="/welcome">
+                <i class="sign-in icon"></i>
+                Se connecter
+            </a>
+        </div>
+        {% endif -%}
     </div>
 </div>
 <script>
