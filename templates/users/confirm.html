@@ -2,9 +2,10 @@
 
 {% block content %}
 <div class="ui main container">
-    <h2 class="ui center aligned icon header">
-        <i class="circular users icon"></i>
-        Authenticator
+    <img class="ui centered tiny image" src="{{ app.logo_url }}">
+
+    <h2 class="ui center aligned text header">
+        {{ app.name }}
         <div class="sub header">
             Confirmation d'email
         </div>
@@ -12,12 +13,12 @@
 
     <div class="ui hidden divider"></div>
 
-    {% if email_confirmed.len() > 0 -%}
+    {% if let Some(email) = email_confirmed -%}
     <div class="ui success message">
         <div class="header">
             Email confirmé
         </div>
-        Vous avez bien confirmé le mail suivant : {{ email_confirmed }}
+        Vous avez bien confirmé le mail suivant : {{ email }}
     </div>
     {% else %}
     <div class="ui negative message">

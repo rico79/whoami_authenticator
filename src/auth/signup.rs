@@ -118,7 +118,7 @@ pub async fn post(
     })?;
 
     // Send confirmation email
-    send_confirmation_email(&state, &form.name, &form.email, &user_id);
+    send_confirmation_email(&state, &form.name, &form.email, &user_id, &app);
 
     // Connect the user and redirect
     Ok(app.redirect_to_welcome())
