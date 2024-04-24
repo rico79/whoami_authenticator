@@ -3,6 +3,7 @@ use axum::{
     extract::{Query, State},
     Form,
 };
+use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
@@ -10,6 +11,8 @@ use crate::{
     users::{confirm::send_confirmation_email, create_user, UserError},
     AppState,
 };
+
+use super::create_session_from_credentials_and_redirect;
 
 /// Template
 /// HTML page definition with dynamic data
@@ -93,6 +96,7 @@ pub struct SignupForm {
 /// Post handler
 /// Process the signup form to create the user and send a confirmation email
 pub async fn post(
+    cookies: CookieJar,
     State(state): State<AppState>,
     Form(form): Form<SignupForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
@@ -121,5 +125,17 @@ pub async fn post(
     send_confirmation_email(&state, &form.name, &form.email, &user_id, &app);
 
     // Connect the user and redirect
-    Ok(app.redirect_to_welcome())
+    if let Ok(response) = create_session_from_credentials_and_redirect(
+        cookies,
+        &state,
+        &form.email,
+        &form.password,
+        &app.app_id,
+    )
+    .await {
+        Ok(response.into_response())
+    } else {
+        Ok(app.redirect_to_welcome().into_response())
+    }
+    
 }
