@@ -81,6 +81,7 @@ async fn http_server(
         .route("/signup", get(auth::signup::get).post(auth::signup::post))
         .route("/signin", get(auth::signin::get).post(auth::signin::post))
         .route("/signout", get(auth::signout::get))
+        .route("/profile", get(users::profile::get))
         .nest_service("/assets", ServeDir::new("assets"))
         .with_state(state);
 

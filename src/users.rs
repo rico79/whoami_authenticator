@@ -1,9 +1,10 @@
+pub mod confirm;
+pub mod profile;
+
 use serde::Deserialize;
 use sqlx::{types::Uuid, Row};
 
 use crate::{utils::crypto::encrypt_text, AppState};
-
-pub mod confirm;
 
 /// Error types for auth errors
 #[derive(Debug, Deserialize)]
@@ -27,17 +28,12 @@ pub async fn create_user(
     confirm_password: &String,
 ) -> Result<String, UserError> {
     // Check if missing data
-    if name.is_empty()
-        || email.is_empty()
-        || password.is_empty()
-        || confirm_password.is_empty()
-    {
+    if name.is_empty() || email.is_empty() || password.is_empty() || confirm_password.is_empty() {
         return Err(UserError::MissingInformation);
     }
 
     // Check if password does not match confirmation
-    if password != confirm_password
-    {
+    if password != confirm_password {
         return Err(UserError::PasswordsMatch);
     }
 

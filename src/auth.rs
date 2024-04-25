@@ -108,7 +108,7 @@ pub async fn create_session_from_credentials_and_redirect(
 }
 
 /// JWT claims struct
-/// sub = subject -> user connected email
+/// sub = subject -> user unique id
 /// iss = issuer -> company name of the auth server
 /// iat = issued at -> date of the token generation
 /// exp = expiration -> end date of the token
