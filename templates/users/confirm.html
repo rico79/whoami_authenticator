@@ -7,27 +7,18 @@
     <h2 class="ui center aligned text header">
         {{ app.name }}
         <div class="sub header">
-            Confirmation d'email
+            {{ action }}
         </div>
     </h2>
 
     <div class="ui hidden divider"></div>
 
-    {% if let Some(email) = email_confirmed -%}
-    <div class="ui success message">
+    <div class="ui {{ message.0 }} message">
         <div class="header">
-            Email confirmé
+            {{ message.1 }}
         </div>
-        Vous avez bien confirmé le mail suivant : {{ email }}
+        {{ message.2 }}
     </div>
-    {% else %}
-    <div class="ui negative message">
-        <div class="header">
-            Confirmation impossible
-        </div>
-        Le code de confirmation est inconnu
-    </div>
-    {% endif -%}
 
 </div>
 {% endblock %}

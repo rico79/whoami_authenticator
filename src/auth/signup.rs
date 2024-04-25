@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{
     apps::App,
-    users::{confirm::send_confirmation_email, User, UserError},
+    users::{confirm::EmailConfirmation, User, UserError},
     AppState,
 };
 
@@ -122,7 +122,7 @@ pub async fn post(
     })?;
 
     // Send confirmation email
-    let _ = send_confirmation_email(&state, &app, &user);
+    let _ = EmailConfirmation::from(state.clone(), user.clone(), app.clone()).send();
 
     // Connect the user and redirect
     if let Ok(response) = create_session_from_credentials_and_redirect(
