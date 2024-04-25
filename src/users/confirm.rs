@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use askama_axum::Template;
 use axum::extract::{Query, State};
-use sqlx::{types::Uuid, Row};
 use tracing::error;
 
 use crate::{apps::App, AppState};
+
+use super::User;
 
 /// Template
 /// HTML page definition with dynamic data
@@ -25,25 +26,13 @@ pub async fn get(
     // Get the app related to the confirmation
     let app = App::from_app_id(params.get("app").unwrap_or(&"".to_owned()).to_string());
 
-    // Get user uuid from confirmation code from query
-    if let Ok(user_id) = Uuid::parse_str(params.get("code").unwrap_or(&"".to_owned())) {
-        // Confirm email into database and get email confirmed
-        if let Ok(row) = sqlx::query(
-            "UPDATE users SET email_confirmed = true WHERE user_id = $1 RETURNING email",
-        )
-        .bind(user_id)
-        .fetch_one(&state.db_pool)
-        .await
-        {
-            PageTemplate {
-                email_confirmed: Some(row.get::<String, &str>("email")),
-                app,
-            }
-        } else {
-            PageTemplate {
-                email_confirmed: None,
-                app,
-            }
+    // Confirm email into database and get email confirmed
+    if let Ok(email_confirmed) =
+        User::confirm_email(&state, params.get("code").unwrap_or(&"".to_owned())).await
+    {
+        PageTemplate {
+            email_confirmed: Some(email_confirmed),
+            app,
         }
     } else {
         PageTemplate {
@@ -63,10 +52,7 @@ pub fn send_confirmation_email(
     app: &App,
 ) {
     // Prepare email
-    let validation_url = format!(
-        "{}/confirm?code={}&app={}",
-        state.app_url, user_id, app.app_id
-    );
+    let validation_url = format!("{}/confirm?code={}&app={}", state.app_url, user_id, app.id);
     let subject = "Confirmez votre inscription".to_owned();
     let body = format!("Bonjour {},
         

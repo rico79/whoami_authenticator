@@ -3,7 +3,7 @@ use axum::response::Redirect;
 /// App struct
 #[derive(Clone, Debug)]
 pub struct App {
-    pub app_id: String,
+    pub id: String,
     pub name: String,
     welcome_url: String,
     pub logo_url: String,
@@ -13,7 +13,7 @@ impl App {
     /// Get authenticator app
     pub fn authenticator_app() -> Self {
         App {
-            app_id: "".to_owned(),
+            id: "".to_owned(),
             name: "Authenticator".to_owned(),
             welcome_url: "/welcome".to_owned(),
             logo_url: "assets/images/logo.png".to_owned(),

@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{apps::App, AppState};
 
-use super::{create_session_from_credentials_and_redirect, get_claims_from_cookies, AuthError};
+use super::{create_session_from_credentials_and_redirect, AuthError, IdTokenClaims};
 
 /// Template
 /// HTML page definition with dynamic data
@@ -22,7 +22,7 @@ pub struct PageTemplate {
 
 impl PageTemplate {
     /// Generate page from data
-    pub fn from(email: Option<String>, app: App, error: Option<AuthError>) -> PageTemplate {
+    pub fn from(email: Option<String>, app: App, error: Option<AuthError>) -> Self {
         // Prepare error message
         let error_message = match error {
             None => "".to_owned(),
@@ -44,7 +44,7 @@ impl PageTemplate {
     }
 
     /// Generate page from query params
-    pub fn from_query(params: QueryParams, app: App) -> PageTemplate {
+    pub fn from_query(params: QueryParams, app: App) -> Self {
         Self::from(params.email, app, params.error)
     }
 }
@@ -69,7 +69,7 @@ pub async fn get(
     let app = App::from_app_id(params.app_id.clone().unwrap_or("".to_owned()));
 
     // Check if already connected
-    if get_claims_from_cookies(&state, &cookies).is_ok() {
+    if IdTokenClaims::get_from_cookies(&state, &cookies).is_ok() {
         app.redirect_to_welcome().into_response()
     } else {
         PageTemplate::from_query(params, app).into_response()

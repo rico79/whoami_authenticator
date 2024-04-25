@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{
     apps::App,
-    users::{confirm::send_confirmation_email, create_user, UserError},
+    users::{confirm::send_confirmation_email, User, UserError},
     AppState,
 };
 
@@ -32,7 +32,7 @@ impl PageTemplate {
         email: Option<String>,
         app: App,
         error: Option<UserError>,
-    ) -> PageTemplate {
+    ) -> Self {
         // Prepare error message
         let error_message = match error {
             None => "".to_owned(),
@@ -43,7 +43,7 @@ impl PageTemplate {
             Some(UserError::MissingInformation) => {
                 "Veuillez remplir toutes vos informations".to_owned()
             }
-            Some(UserError::PasswordsMatch) => {
+            Some(UserError::PasswordsDoNotMatch) => {
                 "Veuillez taper deux fois le même password".to_owned()
             }
             _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
@@ -58,7 +58,7 @@ impl PageTemplate {
     }
 
     /// Generate page from query params
-    pub fn from_query(params: QueryParams, app: App) -> PageTemplate {
+    pub fn from_query(params: QueryParams, app: App) -> Self {
         Self::from(params.name, params.email, app, params.error)
     }
 }
@@ -104,7 +104,7 @@ pub async fn post(
     let app = App::from_app_id(form.app_id);
 
     // Create user and get user_id generated
-    let user_id = create_user(
+    let user = User::create(
         &state,
         &form.name,
         &form.email,
@@ -122,7 +122,7 @@ pub async fn post(
     })?;
 
     // Send confirmation email
-    send_confirmation_email(&state, &form.name, &form.email, &user_id, &app);
+    send_confirmation_email(&state, &form.name, &form.email, &user.id, &app);
 
     // Connect the user and redirect
     if let Ok(response) = create_session_from_credentials_and_redirect(
@@ -130,7 +130,7 @@ pub async fn post(
         &state,
         &form.email,
         &form.password,
-        &app.app_id,
+        &app.id,
     )
     .await {
         Ok(response.into_response())

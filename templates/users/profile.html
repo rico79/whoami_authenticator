@@ -4,7 +4,55 @@
 {% include "navbar.html" %}
 
 <div class="ui main text container">
-    <h2 class="ui center aligned header">Mon profil</h2>
-    <p>Bonjour {{ name }}</p>
+
+    {% if let Some(profile) = user -%}
+    <h2 class="ui center aligned header">
+        Mon profil
+        <div class="sub header">
+            Créé le {{ profile.created_at }}
+        </div>
+    </h2>
+
+    <h4 class="ui dividing header">Informations générales</h4>
+    <form class="ui form" method="POST" action="/profile">
+        <div class="ui error message"></div>
+
+        <div class="field">
+            <label>Nom</label>
+            <div class="ui left icon input">
+                <input class="input" type="text" name="name" value="{{ profile.name }}" placeholder="ex: Yoda" />
+                <i class="user icon"></i>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label">Email</label>
+            <div class="two fields">
+                <div class="field">
+                    <div class="ui left icon input">
+                        <input class="input" type="email" name="email" value="{{ profile.email }}"
+                            placeholder="ex: yoda@dagobah.edu" />
+                        <i class="envelope icon"></i>
+                    </div>
+                </div>
+
+                <div class="field">{{ profile.email_confirmed }}</div>
+            </div>
+        </div>
+
+        <button class="ui primary button">
+            Modifier
+        </button>
+
+        <h4 class="ui dividing header">Changer de mot de passe</h4>
+    </form>
+    {% else %}
+    <div class="ui negative message">
+        <div class="header">
+            Erreur inattendue
+        </div>
+        Veuillez réessayer plus tard
+    </div>
+    {% endif -%}
 </div>
 {% endblock %}
