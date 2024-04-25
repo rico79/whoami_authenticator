@@ -15,8 +15,6 @@
 
     <h4 class="ui dividing header">Informations générales</h4>
     <form class="ui form" method="POST" action="/profile">
-        <div class="ui error message"></div>
-
         <div class="field">
             <label>Nom</label>
             <div class="ui left icon input">
@@ -26,19 +24,29 @@
         </div>
 
         <div class="field">
-            <label class="label">Email</label>
-            <div class="two fields">
-                <div class="field">
-                    <div class="ui left icon input">
-                        <input class="input" type="email" name="email" value="{{ profile.email }}"
-                            placeholder="ex: yoda@dagobah.edu" />
-                        <i class="envelope icon"></i>
-                    </div>
-                </div>
-
-                <div class="field">{{ profile.email_confirmed }}</div>
+            <label class="label">Email
+                {% if profile.email_confirmed -%}
+                <i class="green check icon"></i>
+                {% else %}
+                <i class="red close icon"></i>
+                {% endif -%}
+            </label>
+            <div class="ui left icon input">
+                <input class="input" type="email" name="email" value="{{ profile.email }}"
+                    placeholder="ex: yoda@dagobah.edu" />
+                <i class="envelope icon"></i>
             </div>
         </div>
+
+        {% if ! profile.email_confirmed -%}
+        <div class="ui negative message">
+            L'email n'a pas été confirmé, veuillez vérifier votre boite
+            <a class="ui negative basic button" href="">
+                <i class="paper plane icon"></i>
+                Renvoyer la confirmation d'email
+            </a>
+        </div>
+        {% endif -%}
 
         <button class="ui primary button">
             Modifier

@@ -5,6 +5,7 @@ use serde::Deserialize;
 use sqlx::types::{time::OffsetDateTime, Uuid};
 
 use crate::{
+    auth::IdTokenClaims,
     utils::{crypto::encrypt_text, date_time::DateTime},
     AppState,
 };
@@ -62,7 +63,12 @@ impl User {
     /// Update user profile
     /// Get user id
     /// Return the User
-    pub async fn update_profile(state: &AppState, user_id: &String, name: &String, email: &String) -> Result<Self, UserError> {
+    pub async fn update_profile(
+        state: &AppState,
+        user_id: &String,
+        name: &String,
+        email: &String,
+    ) -> Result<Self, UserError> {
         // Convert the user id into Uuid
         let user_uuid = Uuid::parse_str(user_id).map_err(|_| UserError::InvalidId)?;
 
@@ -90,15 +96,20 @@ impl User {
     /// Confirm email
     /// Get user id
     /// Return email confirmed
-    pub async fn confirm_email(state: &AppState, user_id: &String) -> Result<String, UserError> {
+    pub async fn confirm_email(state: &AppState, token: &String) -> Result<String, UserError> {
+        // Decode token
+        let claims = IdTokenClaims::decode(token.to_string(), state.jwt_secret.clone())
+            .map_err(|_| UserError::EmailConfirmationFailed)?;
+
         // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(user_id).map_err(|_| UserError::InvalidId)?;
+        let user_uuid = Uuid::parse_str(&claims.sub).map_err(|_| UserError::InvalidId)?;
 
         // Confirm email into database and get email confirmed
         let (email, confirmed): (String, bool) = sqlx::query_as(
-            "UPDATE users SET email_confirmed = true WHERE user_id = $1 RETURNING email, email_confirmed",
+            "UPDATE users SET email_confirmed = true WHERE user_id = $1 and email = $2 RETURNING email, email_confirmed",
         )
         .bind(user_uuid)
+        .bind(claims.email)
         .fetch_one(&state.db_pool)
         .await
         .map_err(|_| UserError::UserNotFound)?;

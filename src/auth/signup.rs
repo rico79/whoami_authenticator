@@ -122,7 +122,7 @@ pub async fn post(
     })?;
 
     // Send confirmation email
-    send_confirmation_email(&state, &form.name, &form.email, &user.id, &app);
+    let _ = send_confirmation_email(&state, &app, &user);
 
     // Connect the user and redirect
     if let Ok(response) = create_session_from_credentials_and_redirect(

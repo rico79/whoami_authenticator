@@ -80,28 +80,33 @@ impl IdTokenClaims {
     pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
         // Extract token
         if let Some(token) = cookies.get("session_id") {
-            // Decode the user data
-            let token_data = decode::<IdTokenClaims>(
-                token.value(),
-                &DecodingKey::from_secret(state.jwt_secret.as_ref()),
-                &Validation::default(),
-            )
-            .map_err(|_| AuthError::InvalidToken)?;
-
-            Ok(token_data.claims)
+            Self::decode(token.value().to_string(), state.jwt_secret.clone())
         } else {
             Err(AuthError::InvalidToken)
         }
     }
 
     /// Generate an encoded JSON Web Token
-    fn encode(&self, secret: String) -> Result<String, AuthError> {
+    pub fn encode(&self, secret: String) -> Result<String, AuthError> {
         encode(
             &Header::default(),
             self,
             &EncodingKey::from_secret(secret.as_ref()),
         )
         .map_err(|_| AuthError::TokenCreationFailed)
+    }
+
+    /// Decode JSON Web Token
+    pub fn decode(token: String, secret: String) -> Result<Self, AuthError> {
+        // Decode the user data
+        let token_data = decode::<IdTokenClaims>(
+            &token,
+            &DecodingKey::from_secret(secret.as_ref()),
+            &Validation::default(),
+        )
+        .map_err(|_| AuthError::InvalidToken)?;
+
+        Ok(token_data.claims)
     }
 }
 

@@ -4,9 +4,9 @@ use askama_axum::Template;
 use axum::extract::{Query, State};
 use tracing::error;
 
-use crate::{apps::App, AppState};
+use crate::{apps::App, auth::IdTokenClaims, AppState};
 
-use super::User;
+use super::{User, UserError};
 
 /// Template
 /// HTML page definition with dynamic data
@@ -28,7 +28,7 @@ pub async fn get(
 
     // Confirm email into database and get email confirmed
     if let Ok(email_confirmed) =
-        User::confirm_email(&state, params.get("code").unwrap_or(&"".to_owned())).await
+        User::confirm_email(&state, params.get("token").unwrap_or(&"".to_owned())).await
     {
         PageTemplate {
             email_confirmed: Some(email_confirmed),
@@ -44,15 +44,17 @@ pub async fn get(
 
 /// Email confirmation sending
 /// Send the confirmation email to the user with the confirmation link to click (which will be handled by the get)
-pub fn send_confirmation_email(
-    state: &AppState,
-    user_name: &String,
-    user_email: &String,
-    user_id: &String,
-    app: &App,
-) {
+pub fn send_confirmation_email(state: &AppState, app: &App, user: &User) -> Result<(), UserError> {
+    // Generate code
+    let token = IdTokenClaims::new(
+        user.id.clone(),
+        user.name.clone(),
+        user.email.clone(),
+        604800, // 604800 seconds = 1 Week
+    ).encode(state.jwt_secret.clone()).map_err(|_| UserError::EmailConfirmationFailed)?;
+
     // Prepare email
-    let validation_url = format!("{}/confirm?code={}&app={}", state.app_url, user_id, app.id);
+    let validation_url = format!("{}/confirm?token={}&app={}", state.app_url, token, app.id);
     let subject = "Confirmez votre inscription".to_owned();
     let body = format!("Bonjour {},
         
@@ -62,18 +64,24 @@ Nous vous souhaitons la bienvenue.
 Pour pouvoir continuer et utiliser nos app, veuillez confirmer votre mail en cliquant sur le lien suivant :
 {}
 
+Notez que ce code n'est valable qu'une semaine.
+
 En vous souhaitant une excellente journée !!
 
-L'équipe de Brouclean Softwares",user_name, app.name,validation_url);
+L'équipe de Brouclean Softwares",user.name, app.name,validation_url);
 
     // Send email
     if let Err(error) = state
         .mailer
-        .send(format!("{} <{}>", user_name, user_email), subject, body)
+        .send(format!("{} <{}>", user.name, user.email), subject, body)
     {
         error!(
             "Could not send email confirmation to '{}' due to : {:?}",
-            user_email, error
+            user.email, error
         );
+
+        Err(UserError::EmailConfirmationFailed)
+    } else {
+        Ok(())
     }
 }
