@@ -41,7 +41,7 @@
         {% if ! profile.email_confirmed -%}
         <div class="ui negative message">
             L'email n'a pas été confirmé, veuillez vérifier votre boite
-            <a class="ui negative basic button" href="{{ confirm_send_url }}">
+            <a class="ui negative basic button" href="{{ confirm_send_url }}" target="_blank">
                 <i class="paper plane icon"></i>
                 Renvoyer la confirmation d'email
             </a>
