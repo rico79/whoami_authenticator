@@ -80,7 +80,10 @@ impl IdTokenClaims {
     pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
         // Extract token
         if let Some(token) = cookies.get("session_id") {
-            Self::decode(token.value().to_string(), state.authenticator_app.jwt_secret.clone())
+            Self::decode(
+                token.value().to_string(),
+                state.authenticator_app.jwt_secret.clone(),
+            )
         } else {
             Err(AuthError::InvalidToken)
         }

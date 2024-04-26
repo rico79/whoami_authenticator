@@ -80,7 +80,8 @@ pub async fn get(
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Get app to connect to
-    let app = App::select_app_or_authenticator(&state, &params.app_id.clone().unwrap_or("".to_owned()));
+    let app =
+        App::select_app_or_authenticator(&state, &params.app_id.clone().unwrap_or("".to_owned()));
 
     PageTemplate::from_query(params, app)
 }

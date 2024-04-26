@@ -25,7 +25,11 @@ pub struct EmailConfirmation {
 impl EmailConfirmation {
     /// Create from User
     pub fn from(state: &AppState, user: User, app: App) -> Self {
-        EmailConfirmation { state: state.clone(), user, app }
+        EmailConfirmation {
+            state: state.clone(),
+            user,
+            app,
+        }
     }
 
     /// Email confirmation sending
