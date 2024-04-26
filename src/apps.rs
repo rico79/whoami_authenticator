@@ -30,7 +30,11 @@ impl Default for App {
 
 impl App {
     /// Authenticator app
-    pub fn init_authenticator_app(base_url: String, jwt_secret: String, jwt_seconds_to_expire: i64) -> Self {
+    pub fn init_authenticator_app(
+        base_url: String,
+        jwt_secret: String,
+        jwt_seconds_to_expire: i64,
+    ) -> Self {
         Self {
             id: "".to_owned(),
             name: "Authenticator".to_owned(),
