@@ -98,7 +98,7 @@ impl User {
     /// Return email confirmed
     pub async fn confirm_email(state: &AppState, token: &String) -> Result<String, UserError> {
         // Decode token
-        let claims = IdTokenClaims::decode(token.to_string(), state.jwt_secret.clone())
+        let claims = IdTokenClaims::decode(token.to_string(), state.authenticator_app.jwt_secret.clone())
             .map_err(|_| UserError::EmailConfirmationFailed)?;
 
         // Convert the user id into Uuid

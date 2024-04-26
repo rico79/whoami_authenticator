@@ -25,11 +25,8 @@ use utils::email::AppMailer;
 #[derive(Clone, Debug)]
 pub struct AppState {
     authenticator_app: App,
-    app_url: String,
     db_pool: PgPool,
     mailer: AppMailer,
-    jwt_expire: i64,
-    jwt_secret: String,
 }
 
 /// Implement FromRequestParts
@@ -63,20 +60,15 @@ async fn http_server(
         .await
         .map_err(CustomError::new)?;
 
-    // Init the mailer
-    let mailer = AppMailer::new(&secrets);
-
-    // Init authenticator app
-    let authenticator_app = App::default();
-
     // Set the app state
     let state = AppState {
-        authenticator_app,
-        app_url: secrets.get("APP_URL").unwrap(),
+        authenticator_app: App::init_authenticator_app(
+            secrets.get("APP_URL").unwrap(),
+            secrets.get("JWT_SECRET").unwrap(),
+            secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
+        ),
         db_pool,
-        mailer,
-        jwt_expire: secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
-        jwt_secret: secrets.get("JWT_SECRET").unwrap(),
+        mailer: AppMailer::new(&secrets),
     };
 
     // Define router with state for http server

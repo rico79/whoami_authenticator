@@ -80,7 +80,7 @@ impl IdTokenClaims {
     pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
         // Extract token
         if let Some(token) = cookies.get("session_id") {
-            Self::decode(token.value().to_string(), state.jwt_secret.clone())
+            Self::decode(token.value().to_string(), state.authenticator_app.jwt_secret.clone())
         } else {
             Err(AuthError::InvalidToken)
         }
@@ -206,9 +206,9 @@ pub async fn create_session_from_credentials_and_redirect(
                 user_id.to_string(),
                 user_name,
                 email.to_string(),
-                state.jwt_expire.clone(),
+                state.authenticator_app.jwt_seconds_to_expire.clone(),
             )
-            .encode(state.jwt_secret.clone())?;
+            .encode(state.authenticator_app.jwt_secret.clone())?;
 
             // Return Redirect with cookie containing the session_id
             Ok((

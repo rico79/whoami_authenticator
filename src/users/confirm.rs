@@ -33,7 +33,7 @@ impl EmailConfirmation {
     pub fn send_url(&self) -> String {
         format!(
             "{}/confirm?action={:?}&app_id={}&user_id={}",
-            self.state.app_url,
+            self.state.authenticator_app.base_url,
             Action::Send,
             self.app.id,
             self.user.id,
@@ -50,13 +50,13 @@ impl EmailConfirmation {
             self.user.email.clone(),
             604800, // 604800 seconds = 1 Week
         )
-        .encode(self.state.jwt_secret.clone())
+        .encode(self.state.authenticator_app.jwt_secret.clone())
         .map_err(|_| UserError::EmailConfirmationFailed)?;
 
         // Prepare email
         let validation_url = format!(
             "{}/confirm?action={:?}&app_id={}&token={}",
-            self.state.app_url,
+            self.state.authenticator_app.base_url,
             Action::Confirm,
             self.app.id,
             token
