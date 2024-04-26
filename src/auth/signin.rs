@@ -22,7 +22,12 @@ pub struct PageTemplate {
 
 impl PageTemplate {
     /// Generate page from data
-    pub fn from(email: Option<String>, app: App, error: Option<AuthError>) -> Self {
+    pub fn from_with_option_state(
+        state: Option<AppState>,
+        email: Option<String>,
+        app: Option<App>,
+        error: Option<AuthError>,
+    ) -> Self {
         // Prepare error message
         let error_message = match error {
             None => "".to_owned(),
@@ -36,16 +41,33 @@ impl PageTemplate {
             _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
         };
 
-        PageTemplate {
-            error: error_message,
-            email: email.unwrap_or("".to_owned()),
-            app,
+        match state {
+            Some(state) => PageTemplate {
+                error: error_message,
+                email: email.unwrap_or("".to_owned()),
+                app: app.unwrap_or(state.authenticator_app),
+            },
+            None => PageTemplate {
+                error: error_message,
+                email: email.unwrap_or("".to_owned()),
+                app: app.unwrap_or_default(),
+            },
         }
     }
 
+    /// Generate page from data
+    pub fn from(
+        state: &AppState,
+        email: Option<String>,
+        app: Option<App>,
+        error: Option<AuthError>,
+    ) -> Self {
+        Self::from_with_option_state(Some(state.clone()), email, app, error)
+    }
+
     /// Generate page from query params
-    pub fn from_query(params: QueryParams, app: App) -> Self {
-        Self::from(params.email, app, params.error)
+    pub fn from_query(state: &AppState, params: QueryParams, app: Option<App>) -> Self {
+        Self::from(state, params.email, app, params.error)
     }
 }
 
@@ -66,13 +88,14 @@ pub async fn get(
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Get app to connect to
-    let app = App::from_app_id(params.app_id.clone().unwrap_or("".to_owned()));
+    let app =
+        App::select_app_or_authenticator(&state, &params.app_id.clone().unwrap_or("".to_owned()));
 
     // Check if already connected
     if IdTokenClaims::get_from_cookies(&state, &cookies).is_ok() {
         app.redirect_to_welcome().into_response()
     } else {
-        PageTemplate::from_query(params, app).into_response()
+        PageTemplate::from_query(&state, params, Some(app)).into_response()
     }
 }
 
@@ -102,6 +125,11 @@ pub async fn post(
     )
     .await
     .map_err(|error| {
-        PageTemplate::from(Some(form.email), App::from_app_id(form.app_id), Some(error))
+        PageTemplate::from(
+            &state,
+            Some(form.email),
+            Some(App::select_app_or_authenticator(&state, &form.app_id)),
+            Some(error),
+        )
     })
 }

@@ -24,8 +24,8 @@ pub struct EmailConfirmation {
 
 impl EmailConfirmation {
     /// Create from User
-    pub fn from(state: AppState, user: User, app: App) -> Self {
-        EmailConfirmation { state, user, app }
+    pub fn from(state: &AppState, user: User, app: App) -> Self {
+        EmailConfirmation { state: state.clone(), user, app }
     }
 
     /// Email confirmation sending
@@ -167,7 +167,7 @@ pub async fn get(
     Query(params): Query<QueryParams>,
 ) -> Result<PageTemplate, PageTemplate> {
     // Get the app
-    let app = App::from_app_id(params.app_id);
+    let app = App::select_app_or_authenticator(&state, &params.app_id);
 
     match params.action {
         // Send email
@@ -178,7 +178,7 @@ pub async fn get(
                 .map_err(|_| PageTemplate::from(Action::Send, app.clone(), None))?;
 
             // Send and check result
-            match EmailConfirmation::from(state, user.clone(), app.clone()).send() {
+            match EmailConfirmation::from(&state, user.clone(), app.clone()).send() {
                 Ok(_) => Ok(PageTemplate::from(Action::Send, app, Some(user.email))),
                 Err(_) => Err(PageTemplate::from(Action::Send, app, None)),
             }

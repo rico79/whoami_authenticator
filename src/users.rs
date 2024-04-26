@@ -10,7 +10,7 @@ use crate::{
     AppState,
 };
 
-/// Error types for auth errors
+/// Error types
 #[derive(Debug, Deserialize)]
 pub enum UserError {
     DatabaseError,

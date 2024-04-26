@@ -2,7 +2,7 @@ use askama_axum::{IntoResponse, Template};
 use axum::{extract::State, Form};
 use serde::Deserialize;
 
-use crate::{apps::App, auth::IdTokenClaims, AppState};
+use crate::{auth::IdTokenClaims, AppState};
 
 use super::{confirm::EmailConfirmation, User};
 
@@ -23,8 +23,11 @@ pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl I
     let user = User::select_from_id(&state, &claims.sub).await.ok();
 
     // Prepare confirmation sending url
-    let confirm_send_url= match &user {
-        Some(user) => EmailConfirmation::from(state, user.clone(), App::authenticator_app()).send_url(),
+    let confirm_send_url = match &user {
+        Some(user) => {
+            EmailConfirmation::from(&state, user.clone(), state.authenticator_app.clone())
+                .send_url()
+        }
         None => "".to_owned(),
     };
 
@@ -50,11 +53,16 @@ pub async fn update_profile(
     Form(form): Form<ProfileForm>,
 ) -> impl IntoResponse {
     // Update profile and get user
-    let user = User::update_profile(&state, &claims.sub, &form.name, &form.email).await.ok();
+    let user = User::update_profile(&state, &claims.sub, &form.name, &form.email)
+        .await
+        .ok();
 
     // Prepare confirmation sending url
-    let confirm_send_url= match &user {
-        Some(user) => EmailConfirmation::from(state, user.clone(), App::authenticator_app()).send_url(),
+    let confirm_send_url = match &user {
+        Some(user) => {
+            EmailConfirmation::from(&state, user.clone(), state.authenticator_app.clone())
+                .send_url()
+        }
         None => "".to_owned(),
     };
 

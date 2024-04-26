@@ -75,9 +75,12 @@ pub struct QueryParams {
 
 /// Get handler
 /// Returns the page using the dedicated HTML template
-pub async fn get(Query(params): Query<QueryParams>) -> impl IntoResponse {
+pub async fn get(
+    State(state): State<AppState>,
+    Query(params): Query<QueryParams>,
+) -> impl IntoResponse {
     // Get app to connect to
-    let app = App::from_app_id(params.app_id.clone().unwrap_or("".to_owned()));
+    let app = App::select_app_or_authenticator(&state, &params.app_id.clone().unwrap_or("".to_owned()));
 
     PageTemplate::from_query(params, app)
 }
@@ -101,7 +104,7 @@ pub async fn post(
     Form(form): Form<SignupForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
     // Get App
-    let app = App::from_app_id(form.app_id);
+    let app = App::select_app_or_authenticator(&state, &form.app_id);
 
     // Create user and get user_id generated
     let user = User::create(
@@ -122,7 +125,7 @@ pub async fn post(
     })?;
 
     // Send confirmation email
-    let _ = EmailConfirmation::from(state.clone(), user.clone(), app.clone()).send();
+    let _ = EmailConfirmation::from(&state, user.clone(), app.clone()).send();
 
     // Connect the user and redirect
     if let Ok(response) = create_session_from_credentials_and_redirect(
@@ -132,10 +135,10 @@ pub async fn post(
         &form.password,
         &app.id,
     )
-    .await {
+    .await
+    {
         Ok(response.into_response())
     } else {
         Ok(app.redirect_to_welcome().into_response())
     }
-    
 }

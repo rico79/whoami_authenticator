@@ -7,6 +7,7 @@ mod utils;
 use std::convert::Infallible;
 use std::fmt::Debug;
 
+use apps::App;
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -23,6 +24,7 @@ use utils::email::AppMailer;
 /// Data that can be used in the entire app
 #[derive(Clone, Debug)]
 pub struct AppState {
+    authenticator_app: App,
     app_url: String,
     db_pool: PgPool,
     mailer: AppMailer,
@@ -64,8 +66,12 @@ async fn http_server(
     // Init the mailer
     let mailer = AppMailer::new(&secrets);
 
+    // Init authenticator app
+    let authenticator_app = App::default();
+
     // Set the app state
     let state = AppState {
+        authenticator_app,
         app_url: secrets.get("APP_URL").unwrap(),
         db_pool,
         mailer,
@@ -81,7 +87,10 @@ async fn http_server(
         .route("/signup", get(auth::signup::get).post(auth::signup::post))
         .route("/signin", get(auth::signin::get).post(auth::signin::post))
         .route("/signout", get(auth::signout::get))
-        .route("/profile", get(users::profile::get).post(users::profile::update_profile))
+        .route(
+            "/profile",
+            get(users::profile::get).post(users::profile::update_profile),
+        )
         .nest_service("/assets", ServeDir::new("assets"))
         .with_state(state);
 

@@ -132,31 +132,27 @@ where
     type Rejection = signin::PageTemplate;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Extract cookies
-        let cookies = parts.extract::<CookieJar>().await.map_err(|_| {
-            signin::PageTemplate::from(
-                None,
-                App::authenticator_app(),
-                Some(AuthError::InvalidToken),
-            )
-        })?;
-
         // Extract app state to get the jwt secret
         let state = parts
             .extract_with_state::<AppState, _>(state)
             .await
             .map_err(|_| {
-                signin::PageTemplate::from(
+                signin::PageTemplate::from_with_option_state(
                     None,
-                    App::authenticator_app(),
+                    None,
+                    None,
                     Some(AuthError::InvalidToken),
                 )
             })?;
 
+        // Extract cookies
+        let cookies = parts.extract::<CookieJar>().await.map_err(|_| {
+            signin::PageTemplate::from(&state, None, None, Some(AuthError::InvalidToken))
+        })?;
+
         // Extract token
-        Self::get_from_cookies(&state, &cookies).map_err(|error| {
-            signin::PageTemplate::from(None, App::authenticator_app(), Some(error))
-        })
+        Self::get_from_cookies(&state, &cookies)
+            .map_err(|error| signin::PageTemplate::from(&state, None, None, Some(error)))
     }
 }
 
@@ -217,7 +213,7 @@ pub async fn create_session_from_credentials_and_redirect(
             // Return Redirect with cookie containing the session_id
             Ok((
                 cookies.add(Cookie::new("session_id", jwt)),
-                App::from_app_id(app_id.to_string()).redirect_to_welcome(),
+                App::select_app_or_authenticator(&state, &app_id.to_string()).redirect_to_welcome(),
             ))
         }
         // Wrong Password
