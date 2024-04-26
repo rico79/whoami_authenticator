@@ -6,7 +6,7 @@
 
         <a class="header item" href="/">Authenticator</a>
 
-        {% if let Some(claims) = claims -%}
+        {% if let Some(claims) = claims %}
         <div class="ui right dropdown item">
             <div class="text">{{ claims.name }}</div>
             <i class="dropdown icon"></i>
@@ -32,7 +32,7 @@
                 Se connecter
             </a>
         </div>
-        {% endif -%}
+        {% endif %}
     </div>
 </div>
 <script>

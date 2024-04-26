@@ -1,8 +1,11 @@
 pub mod confirm;
 pub mod profile;
 
+use std::fmt;
+
 use serde::Deserialize;
 use sqlx::types::{time::OffsetDateTime, Uuid};
+use tracing::log::error;
 
 use crate::{
     auth::IdTokenClaims,
@@ -22,6 +25,27 @@ pub enum UserError {
     UserNotFound,
     EmailConfirmationFailed,
 }
+
+// Format Error
+impl fmt::Display for UserError {
+    // Format
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        // Define message
+        let message = match self {
+            UserError::DatabaseError => "Veuillez réessayer plus tard",
+            UserError::CryptoError => "Veuillez réessayer plus tard",
+            UserError::MissingInformation => "Veuillez remplir toutes les informations",
+            UserError::PasswordsDoNotMatch => "Veuillez taper le même mot de passe",
+            UserError::AlreadyExistingUser => "L'utilisateur existe déjà",
+            UserError::InvalidId => "L'identifiant de l'utilisateur est invalide",
+            UserError::UserNotFound => "L'utilisateur est introuvable",
+            UserError::EmailConfirmationFailed => "La confirmation de l'email a échouée",
+        };
+
+        write!(f, "{}", message)
+    }
+}
+
 
 /// User struct
 #[derive(Clone, Debug)]
@@ -83,6 +107,51 @@ impl User {
             .fetch_one(&state.db_pool)
             .await
             .map_err(|_| UserError::UserNotFound)?;
+
+        Ok(User {
+            id: user_id.to_string(),
+            name,
+            email,
+            email_confirmed,
+            created_at: DateTime::from(created_at),
+        })
+    }
+
+    /// Update user password
+    /// Get user id
+    /// Return the User
+    pub async fn update_password(
+        state: &AppState,
+        user_id: &String,
+        password: &String,
+        confirm_password: &String,
+    ) -> Result<Self, UserError> {
+        // Convert the user id into Uuid
+        let user_uuid = Uuid::parse_str(user_id).map_err(|_| UserError::InvalidId)?;
+
+        // Check if missing data
+        if password.is_empty() || confirm_password.is_empty() {
+            return Err(UserError::MissingInformation);
+        }
+
+        // Check if password does not match confirmation
+        if password != confirm_password {
+            return Err(UserError::PasswordsDoNotMatch);
+        }
+
+        // Encrypt the password
+        let encrypted_password = encrypt_text(password).map_err(|_| UserError::CryptoError)?;
+
+        // Update ang get user from database
+        let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
+            sqlx::query_as(
+                "UPDATE users SET encrypted_password = $1 WHERE user_id = $2 RETURNING name, email, email_confirmed, created_at",
+            )
+            .bind(encrypted_password)
+            .bind(user_uuid)
+            .fetch_one(&state.db_pool)
+            .await
+            .map_err(|error| {error!("{:?}", error); UserError::UserNotFound})?;
 
         Ok(User {
             id: user_id.to_string(),

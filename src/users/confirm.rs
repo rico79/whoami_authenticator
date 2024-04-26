@@ -3,7 +3,7 @@ use axum::extract::{Query, State};
 use serde::Deserialize;
 use tracing::error;
 
-use crate::{apps::App, auth::IdTokenClaims, AppState};
+use crate::{apps::App, auth::IdTokenClaims, general::PageMessage, AppState};
 
 use super::{User, UserError};
 
@@ -104,7 +104,7 @@ L'équipe de Brouclean Softwares",self.user.name, self.app.name,validation_url);
 #[template(path = "users/confirm.html")]
 pub struct PageTemplate {
     action: String,
-    message: (String, String, String),
+    message: PageMessage,
     app: App,
 }
 
@@ -113,9 +113,9 @@ impl PageTemplate {
         match (action, email) {
             (Action::Send, Some(email)) => PageTemplate {
                 action: "Envoi de l'email de confirmation".to_owned(),
-                message: (
-                    "success".to_owned(),
+                message: PageMessage::from(
                     "Email envoyé".to_owned(),
+                    "success".to_owned(),
                     format!(
                         "Un email pour confirmation à bien été envoyé à: {}",
                         email.clone()
@@ -125,27 +125,27 @@ impl PageTemplate {
             },
             (Action::Send, None) => PageTemplate {
                 action: "Envoi de l'email de confirmation".to_owned(),
-                message: (
-                    "negative".to_owned(),
+                message: PageMessage::from(
                     "Envoi impossible".to_owned(),
+                    "negative".to_owned(),
                     "Veillez réessayer plus tard".to_owned(),
                 ),
                 app,
             },
             (Action::Confirm, Some(email)) => PageTemplate {
                 action: "Confirmation de l'email".to_owned(),
-                message: (
-                    "success".to_owned(),
+                message: PageMessage::from(
                     "Email confirmé".to_owned(),
+                    "success".to_owned(),
                     format!("Vous avez bien confirmé le mail suivant: {}", email.clone()),
                 ),
                 app,
             },
             (Action::Confirm, None) => PageTemplate {
                 action: "Confirmation de l'email".to_owned(),
-                message: (
-                    "negative".to_owned(),
+                message: PageMessage::from(
                     "Confirmation impossible".to_owned(),
+                    "negative".to_owned(),
                     "Le code de confirmation est inconnu".to_owned(),
                 ),
                 app,

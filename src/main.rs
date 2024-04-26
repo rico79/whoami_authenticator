@@ -12,7 +12,7 @@ use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
     http::request::Parts,
-    routing::get,
+    routing::{get, post},
     Router,
 };
 use shuttle_runtime::{CustomError, SecretStore};
@@ -83,6 +83,7 @@ async fn http_server(
             "/profile",
             get(users::profile::get).post(users::profile::update_profile),
         )
+        .route("/password", post(users::profile::update_password))
         .nest_service("/assets", ServeDir::new("assets"))
         .with_state(state);
 

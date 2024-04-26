@@ -5,7 +5,7 @@
 
 <div class="ui main text container">
 
-    {% if let Some(profile) = user -%}
+    {% if let Some(profile) = user %}
     <h2 class="ui center aligned header">
         Mon profil
         <div class="sub header">
@@ -14,7 +14,10 @@
     </h2>
 
     <h4 class="ui dividing header">Informations générales</h4>
+
     <form class="ui form" method="POST" action="/profile">
+        <div class="ui error message"></div>
+        
         <div class="field">
             <label>Nom</label>
             <div class="ui left icon input">
@@ -25,11 +28,11 @@
 
         <div class="field">
             <label class="label">Email
-                {% if profile.email_confirmed -%}
+                {% if profile.email_confirmed %}
                 <i class="green check icon"></i>
                 {% else %}
                 <i class="red close icon"></i>
-                {% endif -%}
+                {% endif %}
             </label>
             <div class="ui left icon input">
                 <input class="input" type="email" name="email" value="{{ profile.email }}"
@@ -38,7 +41,7 @@
             </div>
         </div>
 
-        {% if ! profile.email_confirmed -%}
+        {% if ! profile.email_confirmed %}
         <div class="ui negative message">
             L'email n'a pas été confirmé, veuillez vérifier votre boite
             <a class="ui negative basic button" href="{{ confirm_send_url }}" target="_blank">
@@ -46,13 +49,51 @@
                 Renvoyer la confirmation d'email
             </a>
         </div>
-        {% endif -%}
+        {% endif %}
 
         <button class="ui primary button">
             Modifier
         </button>
+    </form>
 
-        <h4 class="ui dividing header">Changer de mot de passe</h4>
+    <h4 class="ui dividing header">Changer de mot de passe</h4>
+
+    {% if ! password_message.is_empty() %}
+    <div class="ui {{ password_message.level }} message">
+        <div class="header">
+            {{ password_message.header }}
+        </div>
+        {{ password_message.body }}
+    </div>
+    <script>
+        $('.message .close').on('click', function () {
+            $(this).closest('.message').transition('fade');
+        });
+    </script>
+    {% endif %}
+
+    <form class="ui form" method="POST" action="/password">
+        <div class="ui error message"></div>
+
+        <div class="field">
+            <label class="label">Mot de passe</label>
+            <div class="ui left icon input">
+                <input class="input" type="password" name="password" placeholder="********" />
+                <i class="lock icon"></i>
+            </div>
+        </div>
+
+        <div class="field">
+            <label class="label">Confirmez le mot de passe</label>
+            <div class="ui left icon input">
+                <input class="input" type="password" name="confirm_password" placeholder="********" />
+                <i class="redo icon"></i>
+            </div>
+        </div>
+
+        <button class="ui primary button">
+            Modifier
+        </button>
     </form>
     {% else %}
     <div class="ui negative message">
@@ -61,6 +102,55 @@
         </div>
         Veuillez réessayer plus tard
     </div>
-    {% endif -%}
+    {% endif %}
 </div>
+
+<script>
+    $('.ui.form').form({
+        fields: {
+            name: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez rentrer votre nom'
+                    }
+                ]
+            },
+            email: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez rentrer votre email'
+                    },
+                    {
+                        type: 'regExp',
+                        value: /^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$/,
+                        prompt: 'Veuillez rentrer une adresse mail valide'
+                    }
+                ]
+            },
+            password: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez rentrer votre mot de passe'
+                    }
+                ]
+            },
+            confirm_password: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez confirmer votre mot de passe'
+                    },
+                    {
+                        type: 'match[password]',
+                        prompt: 'La confirmation du mot de passe ne correspond pas'
+
+                    }
+                ]
+            },
+        }
+    });
+</script>
 {% endblock %}

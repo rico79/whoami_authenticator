@@ -13,7 +13,7 @@
 
     <div class="ui hidden divider"></div>
 
-    {% if error.len() > 0 -%}
+    {% if error.len() > 0 %}
     <div class="ui negative message">
         <i class="close icon"></i>
         <div class="header">
@@ -26,7 +26,7 @@
             $(this).closest('.message').transition('fade');
         });
     </script>
-    {% endif -%}
+    {% endif %}
 
     <form class="ui form" method="POST" action="/signup">
         <div class="ui error message"></div>
