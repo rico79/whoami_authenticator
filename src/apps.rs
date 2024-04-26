@@ -15,7 +15,7 @@ pub struct App {
     pub id: String,
     pub name: String,
     pub base_url: String,
-    welcome_endpoint: String,
+    redirect_endpoint: String,
     logo_endpoint: String,
     pub jwt_secret: String,
     pub jwt_seconds_to_expire: i64,
@@ -39,7 +39,7 @@ impl App {
             id: "".to_owned(),
             name: "Authenticator".to_owned(),
             base_url,
-            welcome_endpoint: "/welcome".to_owned(),
+            redirect_endpoint: "/welcome".to_owned(),
             logo_endpoint: "/assets/images/logo.png".to_owned(),
             jwt_secret,
             jwt_seconds_to_expire,
@@ -59,9 +59,9 @@ impl App {
         }
     }
 
-    /// Create welcome url
-    pub fn welcome_url(&self) -> String {
-        format!("{}{}", &self.base_url, &self.welcome_endpoint)
+    /// Create redirect url
+    pub fn redirect_url(&self) -> String {
+        format!("{}{}", &self.base_url, &self.redirect_endpoint)
     }
 
     /// Create logo url
@@ -70,8 +70,8 @@ impl App {
     }
 
     /// App redirection
-    /// Redirect to the app welcome page
-    pub fn redirect_to_welcome(&self) -> Redirect {
-        Redirect::to(&self.welcome_url())
+    /// Redirect to the app after signin
+    pub fn redirect_to(&self) -> Redirect {
+        Redirect::to(&self.redirect_url())
     }
 }

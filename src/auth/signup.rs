@@ -140,6 +140,6 @@ pub async fn post(
     {
         Ok(response.into_response())
     } else {
-        Ok(app.redirect_to_welcome().into_response())
+        Ok(app.redirect_to().into_response())
     }
 }

@@ -216,7 +216,7 @@ pub async fn create_session_from_credentials_and_redirect(
             // Return Redirect with cookie containing the session_id
             Ok((
                 cookies.add(Cookie::new("session_id", jwt)),
-                App::select_app_or_authenticator(&state, &app_id.to_string()).redirect_to_welcome(),
+                App::select_app_or_authenticator(&state, &app_id.to_string()).redirect_to(),
             ))
         }
         // Wrong Password

@@ -93,7 +93,7 @@ pub async fn get(
 
     // Check if already connected
     if IdTokenClaims::get_from_cookies(&state, &cookies).is_ok() {
-        app.redirect_to_welcome().into_response()
+        app.redirect_to().into_response()
     } else {
         PageTemplate::from_query(&state, params, Some(app)).into_response()
     }
