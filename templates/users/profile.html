@@ -3,7 +3,7 @@
 {% block content %}
 {% include "navbar.html" %}
 
-<div class="ui main text container">
+<div class="ui main container">
 
     {% if let Some(profile) = user %}
     <h2 class="ui center aligned header">
@@ -12,6 +12,21 @@
             Créé le {{ profile.created_at }}
         </div>
     </h2>
+
+    {% if ! message.is_empty() %}
+    <div class="ui {{ message.level }} message">
+        <i class="close icon"></i>
+        <div class="header">
+            {{ message.header }}
+        </div>
+        {{ message.body }}
+    </div>
+    <script>
+        $('.message .close').on('click', function () {
+            $(this).closest('.message').transition('fade');
+        });
+    </script>
+    {% endif %}
 
     <h4 class="ui dividing header">Informations générales</h4>
 
@@ -57,20 +72,6 @@
     </form>
 
     <h4 class="ui dividing header">Changer de mot de passe</h4>
-
-    {% if ! password_message.is_empty() %}
-    <div class="ui {{ password_message.level }} message">
-        <div class="header">
-            {{ password_message.header }}
-        </div>
-        {{ password_message.body }}
-    </div>
-    <script>
-        $('.message .close').on('click', function () {
-            $(this).closest('.message').transition('fade');
-        });
-    </script>
-    {% endif %}
 
     <form class="ui form" method="POST" action="/password">
         <div class="ui error message"></div>

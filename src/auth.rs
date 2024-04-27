@@ -170,6 +170,18 @@ pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> imp
 
 /// Create session id in cookies if user credentials are Ok
 /// Then redirect to an url
+/// Use the cookies and jwt
+/// Return response
+pub fn create_session_into_response(
+    cookies: CookieJar,
+    jwt: String,
+    response: impl IntoResponse,
+) -> impl IntoResponse {
+    (cookies.add(Cookie::new("session_id", jwt)), response)
+}
+
+/// Create session id in cookies if user credentials are Ok
+/// Then redirect to an url
 /// Use the cookies and the App state
 /// Get email and password and the url for redirect
 /// Return session id wich is a JWT or an AuthError
@@ -214,8 +226,9 @@ pub async fn create_session_from_credentials_and_redirect(
             .encode(state.authenticator_app.jwt_secret.clone())?;
 
             // Return Redirect with cookie containing the session_id
-            Ok((
-                cookies.add(Cookie::new("session_id", jwt)),
+            Ok(create_session_into_response(
+                cookies,
+                jwt,
                 App::select_app_or_authenticator(&state, &app_id.to_string()).redirect_to(),
             ))
         }

@@ -1,8 +1,13 @@
 use askama_axum::{IntoResponse, Template};
 use axum::{extract::State, Form};
+use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
-use crate::{auth::IdTokenClaims, general::PageMessage, AppState};
+use crate::{
+    auth::{create_session_into_response, IdTokenClaims},
+    general::PageMessage,
+    AppState,
+};
 
 use super::{confirm::EmailConfirmation, User};
 
@@ -14,7 +19,7 @@ pub struct PageTemplate {
     claims: Option<IdTokenClaims>,
     user: Option<User>,
     confirm_send_url: String,
-    password_message: PageMessage,
+    message: PageMessage,
 }
 
 impl PageTemplate {
@@ -23,7 +28,7 @@ impl PageTemplate {
         state: &AppState,
         claims: IdTokenClaims,
         returned_user: Option<User>,
-        password_message: PageMessage,
+        message: PageMessage,
     ) -> Self {
         // Get user
         let user = match returned_user {
@@ -44,7 +49,7 @@ impl PageTemplate {
             claims: Some(claims.clone()),
             user: user,
             confirm_send_url,
-            password_message,
+            message,
         }
     }
 }
@@ -65,6 +70,7 @@ pub struct ProfileForm {
 
 /// Profile update handler
 pub async fn update_profile(
+    cookies: CookieJar,
     claims: IdTokenClaims,
     State(state): State<AppState>,
     Form(form): Form<ProfileForm>,
@@ -74,7 +80,35 @@ pub async fn update_profile(
         .await
         .ok();
 
-    PageTemplate::from(&state, claims, user, PageMessage::empty()).await
+    match user {
+        Some(updated_user) => {
+            // Renew the token if profile updated
+            let claims = IdTokenClaims::new(
+                updated_user.id.clone(),
+                updated_user.name.clone(),
+                updated_user.email.clone(),
+                state.authenticator_app.jwt_seconds_to_expire.clone(),
+            );
+
+            // Check token
+            if let Ok(jwt) = claims.encode(state.authenticator_app.jwt_secret.clone()) {
+                create_session_into_response(
+                    cookies,
+                    jwt,
+                    PageTemplate::from(&state, claims, Some(updated_user), PageMessage::empty())
+                        .await,
+                )
+                .into_response()
+            } else {
+                PageTemplate::from(&state, claims, None, PageMessage::empty())
+                    .await
+                    .into_response()
+            }
+        }
+        None => PageTemplate::from(&state, claims, None, PageMessage::empty())
+            .await
+            .into_response(),
+    }
 }
 
 /// Form
