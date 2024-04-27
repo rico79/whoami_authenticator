@@ -19,6 +19,7 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
+use tracing::log::error;
 
 use crate::apps::App;
 use crate::utils::crypto::verify_encrypted_text;
@@ -96,7 +97,10 @@ impl IdTokenClaims {
             self,
             &EncodingKey::from_secret(secret.as_ref()),
         )
-        .map_err(|_| AuthError::TokenCreationFailed)
+        .map_err(|error| {
+            error!("{:?}", error);
+            AuthError::TokenCreationFailed
+        })
     }
 
     /// Decode JSON Web Token
@@ -107,7 +111,10 @@ impl IdTokenClaims {
             &DecodingKey::from_secret(secret.as_ref()),
             &Validation::default(),
         )
-        .map_err(|_| AuthError::InvalidToken)?;
+        .map_err(|error| {
+            error!("{:?}", error);
+            AuthError::InvalidToken
+        })?;
 
         Ok(token_data.claims)
     }
@@ -139,7 +146,8 @@ where
         let state = parts
             .extract_with_state::<AppState, _>(state)
             .await
-            .map_err(|_| {
+            .map_err(|error| {
+                error!("{:?}", error);
                 signin::PageTemplate::from_with_option_state(
                     None,
                     None,
@@ -149,7 +157,8 @@ where
             })?;
 
         // Extract cookies
-        let cookies = parts.extract::<CookieJar>().await.map_err(|_| {
+        let cookies = parts.extract::<CookieJar>().await.map_err(|error| {
+            error!("{:?}", error);
             signin::PageTemplate::from(&state, None, None, Some(AuthError::InvalidToken))
         })?;
 
@@ -203,7 +212,10 @@ pub async fn create_session_from_credentials_and_redirect(
             .bind(email)
             .fetch_optional(&state.db_pool)
             .await
-            .map_err(|_| AuthError::DatabaseError)?;
+            .map_err(|error| {
+                error!("{:?}", error);
+                AuthError::DatabaseError
+            })?;
 
     // Check if there is a user selected
     if let Some(row) = query_result {
@@ -213,9 +225,10 @@ pub async fn create_session_from_credentials_and_redirect(
         let encrypted_password = row.get::<String, &str>("encrypted_password");
 
         // Check password
-        if verify_encrypted_text(password, &encrypted_password)
-            .map_err(|_| AuthError::CryptoError)?
-        {
+        if verify_encrypted_text(password, &encrypted_password).map_err(|error| {
+            error!("{:?}", error);
+            AuthError::CryptoError
+        })? {
             // Generate JWT
             let jwt = IdTokenClaims::new(
                 user_id.to_string(),
