@@ -20,9 +20,9 @@ pub enum UserError {
     CryptoError,
     MissingInformation,
     PasswordsDoNotMatch,
-    AlreadyExistingUser,
+    AlreadyExisting,
     InvalidId,
-    UserNotFound,
+    NotFound,
     EmailConfirmationFailed,
 }
 
@@ -36,9 +36,9 @@ impl fmt::Display for UserError {
             UserError::CryptoError => "Veuillez réessayer plus tard",
             UserError::MissingInformation => "Veuillez remplir toutes les informations",
             UserError::PasswordsDoNotMatch => "Veuillez taper le même mot de passe",
-            UserError::AlreadyExistingUser => "L'utilisateur existe déjà",
+            UserError::AlreadyExisting => "L'utilisateur existe déjà",
             UserError::InvalidId => "L'identifiant de l'utilisateur est invalide",
-            UserError::UserNotFound => "L'utilisateur est introuvable",
+            UserError::NotFound => "L'utilisateur est introuvable",
             UserError::EmailConfirmationFailed => "La confirmation de l'email a échouée",
         };
 
@@ -60,7 +60,7 @@ impl User {
     /// Get user data
     /// Get user id
     /// Return the User
-    pub async fn select_from_id(state: &AppState, user_id: &String) -> Result<Self, UserError> {
+    pub async fn select_from_user_id(state: &AppState, user_id: &String) -> Result<Self, UserError> {
         // Convert the user id into Uuid
         let user_uuid = Uuid::parse_str(user_id).map_err(|error| {
             error!("{:?}", error);
@@ -70,14 +70,16 @@ impl User {
         // Get user from database
         let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
             sqlx::query_as(
-                "SELECT name, email, email_confirmed, created_at FROM users WHERE user_id = $1",
+                "SELECT name, email, email_confirmed, created_at 
+                FROM users 
+                WHERE user_id = $1",
             )
             .bind(user_uuid)
             .fetch_one(&state.db_pool)
             .await
             .map_err(|error| {
                 error!("{:?}", error);
-                UserError::UserNotFound
+                UserError::NotFound
             })?;
 
         Ok(User {
@@ -107,14 +109,17 @@ impl User {
         // Update ang get user from database
         let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
             sqlx::query_as(
-                "UPDATE users SET name = $1, email = $2, email_confirmed = (email=$2 AND email_confirmed) WHERE user_id = $3 RETURNING name, email, email_confirmed, created_at",
+                "UPDATE users 
+                SET name = $1, email = $2, email_confirmed = (email=$2 AND email_confirmed) 
+                WHERE user_id = $3 
+                RETURNING name, email, email_confirmed, created_at",
             )
             .bind(name)
             .bind(email)
             .bind(user_uuid)
             .fetch_one(&state.db_pool)
             .await
-            .map_err(|error| {error!("{:?}", error); UserError::UserNotFound})?;
+            .map_err(|error| {error!("{:?}", error); UserError::NotFound})?;
 
         Ok(User {
             id: user_id.to_string(),
@@ -159,13 +164,16 @@ impl User {
         // Update ang get user from database
         let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
             sqlx::query_as(
-                "UPDATE users SET encrypted_password = $1 WHERE user_id = $2 RETURNING name, email, email_confirmed, created_at",
+                "UPDATE users 
+                SET encrypted_password = $1 
+                WHERE user_id = $2 
+                RETURNING name, email, email_confirmed, created_at",
             )
             .bind(encrypted_password)
             .bind(user_uuid)
             .fetch_one(&state.db_pool)
             .await
-            .map_err(|error| {error!("{:?}", error); UserError::UserNotFound})?;
+            .map_err(|error| {error!("{:?}", error); UserError::NotFound})?;
 
         Ok(User {
             id: user_id.to_string(),
@@ -198,13 +206,16 @@ impl User {
 
         // Confirm email into database and get email confirmed
         let (email, confirmed): (String, bool) = sqlx::query_as(
-            "UPDATE users SET email_confirmed = true WHERE user_id = $1 and email = $2 RETURNING email, email_confirmed",
+            "UPDATE users 
+            SET email_confirmed = true 
+            WHERE user_id = $1 and email = $2 
+            RETURNING email, email_confirmed",
         )
         .bind(user_uuid)
         .bind(claims.email)
         .fetch_one(&state.db_pool)
         .await
-        .map_err(|error| {error!("{:?}", error); UserError::UserNotFound})?;
+        .map_err(|error| {error!("{:?}", error); UserError::NotFound})?;
 
         // Check if confirmed
         if confirmed {
@@ -244,7 +255,9 @@ impl User {
 
         // Insert the user
         let (user_id, created_at): (Uuid, OffsetDateTime) = sqlx::query_as(
-            "INSERT INTO users (name, email, encrypted_password) VALUES ($1, $2, $3) RETURNING user_id, created_at",
+            "INSERT INTO users (name, email, encrypted_password) 
+            VALUES ($1, $2, $3) 
+            RETURNING user_id, created_at",
         )
         .bind(name)
         .bind(email)
@@ -254,7 +267,7 @@ impl User {
         .map_err(|error| match error {
             sqlx::Error::Database(error) => {
                 if error.is_unique_violation() {
-                    UserError::AlreadyExistingUser
+                    UserError::AlreadyExisting
                 } else {
                     error!("{:?}", error); 
                     UserError::DatabaseError

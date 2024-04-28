@@ -2,7 +2,7 @@ use askama_axum::{IntoResponse, Template};
 use axum::extract::State;
 
 use crate::{
-    apps::{App, AppListTemplate},
+    apps::{app_list::AppListTemplate, App},
     auth::IdTokenClaims,
     AppState,
 };
@@ -22,7 +22,7 @@ pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl I
     PageTemplate {
         claims: Some(claims.clone()),
         own_apps: AppListTemplate {
-            apps: App::select_own_apps(&state, &claims.sub).unwrap(),
+            apps: App::select_own_apps(&state, &claims.sub).await.unwrap(),
         },
     }
 }

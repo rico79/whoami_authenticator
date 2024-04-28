@@ -36,7 +36,7 @@ impl PageTemplate {
         // Prepare error message
         let error_message = match error {
             None => "".to_owned(),
-            Some(UserError::AlreadyExistingUser) => format!(
+            Some(UserError::AlreadyExisting) => format!(
                 "Le mail {} est déjà utilisé",
                 email.clone().unwrap_or("".to_owned())
             ),

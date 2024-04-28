@@ -8,12 +8,26 @@ pub struct DateTime {
     timestamp: i64,
 }
 
+impl DateTime {
+    /// Get Datetime from timestamp
+    pub fn from_timestamp(timestamp: i64) -> Self {
+        Self { timestamp }
+    }
+}
+
 /// Generate DateTime from sqlx OffsetDateTime
 impl From<OffsetDateTime> for DateTime {
     fn from(offset_date_time: OffsetDateTime) -> Self {
         DateTime {
             timestamp: offset_date_time.unix_timestamp(),
         }
+    }
+}
+
+/// DateTime default
+impl Default for DateTime {
+    fn default() -> Self {
+        Self { timestamp: 0 }
     }
 }
 

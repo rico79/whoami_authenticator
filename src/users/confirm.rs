@@ -181,7 +181,7 @@ pub async fn get(
         // Send email
         Action::Send => {
             // Get the user
-            let user = User::select_from_id(&state, &params.user_id.unwrap_or_default())
+            let user = User::select_from_user_id(&state, &params.user_id.unwrap_or_default())
                 .await
                 .map_err(|_| PageTemplate::from(Action::Send, app.clone(), None))?;
 

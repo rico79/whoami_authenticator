@@ -18,7 +18,7 @@ use axum::{
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::ServeDir;
-use utils::email::AppMailer;
+use utils::{date_time::DateTime, email::AppMailer};
 
 /// App state
 /// Data that can be used in the entire app
@@ -66,6 +66,8 @@ async fn http_server(
             secrets.get("APP_URL").unwrap(),
             secrets.get("JWT_SECRET").unwrap(),
             secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
+            DateTime::from_timestamp(1712899091),
+            secrets.get("MAIL_USER_NAME").unwrap(),
         ),
         db_pool,
         mailer: AppMailer::new(&secrets),

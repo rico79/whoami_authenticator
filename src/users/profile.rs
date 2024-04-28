@@ -32,7 +32,7 @@ impl PageTemplate {
     ) -> Self {
         // Get user
         let user = match returned_user {
-            None => User::select_from_id(&state, &claims.sub).await.ok(),
+            None => User::select_from_user_id(&state, &claims.sub).await.ok(),
             Some(user) => Some(user),
         };
 

@@ -84,7 +84,7 @@ JWT_SECRET = "Your JWT secret"
 ## To build and run the app
 To run the app locally (localhost)
 ```
-cargo shuttle run
+cargo shuttle run [--port XXXX]
 ```
 
 To run the app exposed on local network (on 0.0.0.0:XXXX)
