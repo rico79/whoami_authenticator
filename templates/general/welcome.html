@@ -9,7 +9,7 @@
     <h4 class="ui dividing header">Les apps que je possède</h4>
     
     <div id="own_apps_div" class="ui container">
-        {{ own_apps }}
+        {{ own_apps|escape("none") }}
     </div>
 </div>
 {% endblock %}

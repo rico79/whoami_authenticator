@@ -10,7 +10,7 @@ use crate::{
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "general/welcome.html", escape = "none")]
+#[template(path = "general/welcome.html")]
 pub struct PageTemplate {
     claims: Option<IdTokenClaims>,
     own_apps: AppListTemplate,
