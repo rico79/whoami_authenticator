@@ -107,29 +107,43 @@ impl App {
         })?;
 
         // Get apps from database
-        let (app_id, name, base_url, logo_endpoint, created_at, owner_email): (
-            Uuid,
+        let result_apps: Vec<(Uuid, 
             String,
             String,
             String,
+            String,
+            String,
+            i64,
             OffsetDateTime,
-            String,
-        ) = sqlx::query_as(
-            "SELECT a.app_id, a.name, a.base_url, a.logo_endpoint, a.created_at, u.email 
+            String,)> = sqlx::query_as(
+            "SELECT a.app_id, a.name, a.base_url, a.redirect_endpoint, a.logo_endpoint, a.jwt_secret, a.jwt_seconds_to_expire, a.created_at, u.email 
             FROM users u 
             JOIN apps a ON u.id = a.owner_id 
             WHERE u.user_id = $1",
         )
         .bind(user_uuid)
-        .fetch_one(&state.db_pool)
+        .fetch_all(&state.db_pool)
         .await
         .map_err(|error| {
             error!("{:?}", error);
             AppError::NotFound
         })?;
 
+        // Get apps
         let mut apps = Vec::new();
-        apps.push(Self::default());
+        for app in result_apps {
+            apps.push(App {
+                id: app.0.to_string(),
+                name: app.1,
+                base_url: app.2,
+                redirect_endpoint: app.3,
+                logo_endpoint: app.4,
+                jwt_secret: app.5,
+                jwt_seconds_to_expire: app.6,
+                created_at: DateTime::from(app.7),
+                owner_email: app.8,
+            });
+        }
 
         Ok(apps)
     }
@@ -164,7 +178,7 @@ impl App {
             OffsetDateTime,
             String,
         ) = sqlx::query_as(
-            "SELECT name, base_url, redirect_endpoint, logo_endpoint, jwt_secret, jwt_seconds_to_expire, created_at, owner_email 
+            "SELECT a.name, a.base_url, a.redirect_endpoint, a.logo_endpoint, a.jwt_secret, a.jwt_seconds_to_expire, a.created_at, u.email 
             FROM apps a 
             LEFT OUTER JOIN users u ON u.id = a.owner_id 
             WHERE a.app_id = $1",
