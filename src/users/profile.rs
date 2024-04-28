@@ -19,7 +19,7 @@ pub struct PageTemplate {
     claims: Option<IdTokenClaims>,
     user: Option<User>,
     confirm_send_url: String,
-    message: PageMessage,
+    password_message: PageMessage,
 }
 
 impl PageTemplate {
@@ -28,7 +28,7 @@ impl PageTemplate {
         state: &AppState,
         claims: IdTokenClaims,
         returned_user: Option<User>,
-        message: PageMessage,
+        password_message: PageMessage,
     ) -> Self {
         // Get user
         let user = match returned_user {
@@ -49,7 +49,7 @@ impl PageTemplate {
             claims: Some(claims.clone()),
             user: user,
             confirm_send_url,
-            message,
+            password_message,
         }
     }
 }
@@ -111,6 +111,14 @@ pub async fn update_profile(
     }
 }
 
+/// Template
+/// HTML page definition with dynamic data
+#[derive(Template)]
+#[template(path = "users/profile_password.html")]
+pub struct ProfilePasswordTemplate {
+    password_message: PageMessage,
+}
+
 /// Form
 /// Data expected to update
 #[derive(Deserialize)]
@@ -131,30 +139,15 @@ pub async fn update_password(
 
     // Check user
     match user {
-        Ok(returned_user) => {
-            PageTemplate::from(
-                &state,
-                claims,
-                Some(returned_user),
-                PageMessage::from_body(
-                    "success".to_owned(),
-                    "Votre password a bien été modifié".to_owned(),
-                ),
-            )
-            .await
-        }
+        Ok(_) => ProfilePasswordTemplate {
+            password_message: PageMessage::from_body(
+                "success".to_owned(),
+                "Votre password a bien été modifié".to_owned(),
+            ),
+        },
 
-        Err(error) => {
-            PageTemplate::from(
-                &state,
-                claims,
-                None,
-                PageMessage::from_body(
-                    "negative".to_owned(),
-                    error.to_string(),
-                ),
-            )
-            .await
-        }
+        Err(error) => ProfilePasswordTemplate {
+            password_message: PageMessage::from_body("negative".to_owned(), error.to_string()),
+        },
     }
 }
