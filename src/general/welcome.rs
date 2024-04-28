@@ -1,21 +1,28 @@
 use askama_axum::{IntoResponse, Template};
+use axum::extract::State;
 
-use crate::auth::IdTokenClaims;
+use crate::{
+    apps::{App, AppListTemplate},
+    auth::IdTokenClaims,
+    AppState,
+};
 
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "general/welcome.html")]
+#[template(path = "general/welcome.html", escape = "none")]
 pub struct PageTemplate {
     claims: Option<IdTokenClaims>,
-    name: String,
+    own_apps: AppListTemplate,
 }
 
 /// Get handler
 /// Returns the page using the dedicated HTML template
-pub async fn get(claims: IdTokenClaims) -> impl IntoResponse {
+pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl IntoResponse {
     PageTemplate {
         claims: Some(claims.clone()),
-        name: claims.name.clone(),
+        own_apps: AppListTemplate {
+            apps: App::select_own_apps(&state, &claims.sub).unwrap(),
+        },
     }
 }

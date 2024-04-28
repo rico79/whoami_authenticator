@@ -1,3 +1,4 @@
+use askama::Template;
 use axum::response::Redirect;
 use serde::Deserialize;
 
@@ -74,4 +75,22 @@ impl App {
     pub fn redirect_to(&self) -> Redirect {
         Redirect::to(&self.redirect_url())
     }
+
+    /// Select all apps owned by the user
+    /// Get user_id
+    /// return list of apps
+    pub fn select_own_apps(state: &AppState, user_id: &String) -> Result<Vec<Self>, AppError> {
+        let mut apps = Vec::new();
+        apps.push(Self::default());
+
+        Ok(apps)
+    }
+}
+
+/// Template
+/// HTML page definition with dynamic data
+#[derive(Template)]
+#[template(path = "apps/app_list.html")]
+pub struct AppListTemplate {
+    pub apps: Vec<App>,
 }
