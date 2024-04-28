@@ -13,12 +13,7 @@
 
     <div class="ui hidden divider"></div>
 
-    <div class="ui {{ message.level }} message">
-        <div class="header">
-            {{ message.header }}
-        </div>
-        {{ message.body }}
-    </div>
+    {{ message|escape("none") }}
 
 </div>
 {% endblock %}

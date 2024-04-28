@@ -1,0 +1,18 @@
+{% if ! Self::is_empty(self) %}
+<div class="ui {{ level }} message">
+    {% if closeable %}<i class="close icon"></i>{% endif %}
+    {% if header.len() > 0 %}
+    <div class="header">
+        {{ header }}
+    </div>
+    {% endif %}
+    {{ body }}
+</div>
+{% if closeable %}
+<script>
+    $('.message .close').on('click', function () {
+        $(this).closest('.message').transition('fade');
+    });
+</script>
+{% endif %}
+{% endif %}

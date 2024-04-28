@@ -16,7 +16,10 @@ use axum::{
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use chrono::Utc;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    decode, encode, errors::ErrorKind::ExpiredSignature, DecodingKey, EncodingKey, Header,
+    Validation,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Row};
 use tracing::log::error;
@@ -112,7 +115,10 @@ impl IdTokenClaims {
             &Validation::default(),
         )
         .map_err(|error| {
-            error!("{:?}", error);
+            match error.kind() {
+                ExpiredSignature => (),
+                _ => error!("{:?}", error),
+            };
             AuthError::InvalidToken
         })?;
 

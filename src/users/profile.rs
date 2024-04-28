@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     auth::{create_session_into_response, IdTokenClaims},
-    general::PageMessage,
+    general::MessageTemplate,
     AppState,
 };
 
@@ -19,7 +19,7 @@ pub struct PageTemplate {
     claims: Option<IdTokenClaims>,
     user: Option<User>,
     confirm_send_url: String,
-    password_message: PageMessage,
+    password_message: MessageTemplate,
 }
 
 impl PageTemplate {
@@ -28,7 +28,7 @@ impl PageTemplate {
         state: &AppState,
         claims: IdTokenClaims,
         returned_user: Option<User>,
-        password_message: PageMessage,
+        password_message: MessageTemplate,
     ) -> Self {
         // Get user
         let user = match returned_user {
@@ -57,7 +57,7 @@ impl PageTemplate {
 /// Get handler
 /// Returns the page using the dedicated HTML template
 pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl IntoResponse {
-    PageTemplate::from(&state, claims, None, PageMessage::empty()).await
+    PageTemplate::from(&state, claims, None, MessageTemplate::empty()).await
 }
 
 /// Profile form
@@ -95,17 +95,17 @@ pub async fn update_profile(
                 create_session_into_response(
                     cookies,
                     jwt,
-                    PageTemplate::from(&state, claims, Some(updated_user), PageMessage::empty())
+                    PageTemplate::from(&state, claims, Some(updated_user), MessageTemplate::empty())
                         .await,
                 )
                 .into_response()
             } else {
-                PageTemplate::from(&state, claims, None, PageMessage::empty())
+                PageTemplate::from(&state, claims, None, MessageTemplate::empty())
                     .await
                     .into_response()
             }
         }
-        None => PageTemplate::from(&state, claims, None, PageMessage::empty())
+        None => PageTemplate::from(&state, claims, None, MessageTemplate::empty())
             .await
             .into_response(),
     }
@@ -116,7 +116,7 @@ pub async fn update_profile(
 #[derive(Template)]
 #[template(path = "users/profile_password.html")]
 pub struct ProfilePasswordTemplate {
-    password_message: PageMessage,
+    password_message: MessageTemplate,
 }
 
 /// Form
@@ -140,14 +140,15 @@ pub async fn update_password(
     // Check user
     match user {
         Ok(_) => ProfilePasswordTemplate {
-            password_message: PageMessage::from_body(
+            password_message: MessageTemplate::from_body(
                 "success".to_owned(),
                 "Votre password a bien été modifié".to_owned(),
+                true,
             ),
         },
 
         Err(error) => ProfilePasswordTemplate {
-            password_message: PageMessage::from_body("negative".to_owned(), error.to_string()),
+            password_message: MessageTemplate::from_body("negative".to_owned(), error.to_string(), true),
         },
     }
 }
