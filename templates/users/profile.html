@@ -59,7 +59,36 @@
     </div>
 
     <h4 class="ui dividing header">Changer de mot de passe</h4>
-    {% include "users/profile_password.html" %}
+
+    <div class="ui container">
+        <div id="password_message" class="ui container">
+            {{ password_message|escape("none") }}
+        </div>
+
+        <form class="ui form" hx-post="/password" hx-target="#password_message">
+            <div class="ui error message"></div>
+
+            <div class="field">
+                <label class="label">Mot de passe</label>
+                <div class="ui left icon input">
+                    <input class="input" type="password" name="password" placeholder="********" />
+                    <i class="lock icon"></i>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Confirmez le mot de passe</label>
+                <div class="ui left icon input">
+                    <input class="input" type="password" name="confirm_password" placeholder="********" />
+                    <i class="redo icon"></i>
+                </div>
+            </div>
+
+            <button class="ui primary button">
+                Modifier
+            </button>
+        </form>
+    </div>
 
     {% else %}
     <div class="ui negative message">

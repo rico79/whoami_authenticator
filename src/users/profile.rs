@@ -95,28 +95,35 @@ pub async fn update_profile(
                 create_session_into_response(
                     cookies,
                     jwt,
-                    PageTemplate::from(&state, claims, Some(updated_user), MessageTemplate::empty())
-                        .await,
+                    PageTemplate::from(
+                        &state,
+                        claims,
+                        Some(updated_user),
+                        MessageTemplate::empty(),
+                    )
+                    .await,
                 )
                 .into_response()
             } else {
-                PageTemplate::from(&state, claims, None, MessageTemplate::empty())
-                    .await
-                    .into_response()
+                PageTemplate::from(
+                    &state,
+                    claims,
+                    None,
+                    MessageTemplate::empty(),
+                )
+                .await
+                .into_response()
             }
         }
-        None => PageTemplate::from(&state, claims, None, MessageTemplate::empty())
-            .await
-            .into_response(),
+        None => PageTemplate::from(
+            &state,
+            claims,
+            None,
+            MessageTemplate::empty(),
+        )
+        .await
+        .into_response(),
     }
-}
-
-/// Template
-/// HTML page definition with dynamic data
-#[derive(Template)]
-#[template(path = "users/profile_password.html")]
-pub struct ProfilePasswordTemplate {
-    password_message: MessageTemplate,
 }
 
 /// Form
@@ -139,16 +146,16 @@ pub async fn update_password(
 
     // Check user
     match user {
-        Ok(_) => ProfilePasswordTemplate {
-            password_message: MessageTemplate::from_body(
-                "success".to_owned(),
-                "Votre password a bien été modifié".to_owned(),
-                true,
-            ),
-        },
+        Ok(_) => MessageTemplate::from_body(
+            "success".to_owned(),
+            "Votre password a bien été modifié".to_owned(),
+            true,
+        ),
 
-        Err(error) => ProfilePasswordTemplate {
-            password_message: MessageTemplate::from_body("negative".to_owned(), error.to_string(), true),
-        },
+        Err(error) => MessageTemplate::from_body(
+            "negative".to_owned(),
+            error.to_string(),
+            true,
+        ),
     }
 }

@@ -28,9 +28,9 @@ impl MessageTemplate {
     /// From
     pub fn from(header: String, level: String, body: String, closeable: bool) -> Self {
         Self {
-            header: header,
-            level: level,
-            body: body,
+            header,
+            level,
+            body,
             closeable,
         }
     }
