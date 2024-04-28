@@ -13,62 +13,65 @@
 
     <div class="ui hidden divider"></div>
 
-    {% if error.len() > 0 %}
-    <div class="ui negative message">
-        <i class="close icon"></i>
-        <div class="header">
-            Connexion impossible
+    <div class="ui container">
+        {% if error.len() > 0 %}
+        <div class="ui negative message">
+            <i class="close icon"></i>
+            <div class="header">
+                Connexion impossible
+            </div>
+            {{ error }}
         </div>
-        {{ error }}
+        <script>
+            $('.message .close').on('click', function () {
+                $(this).closest('.message').transition('fade');
+            });
+        </script>
+        {% endif %}
+
+        <form class="ui form" method="POST" action="/signin">
+            <div class="ui error message"></div>
+
+            <div class="field">
+                <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
+            </div>
+
+            <div class="field">
+                <label class="label">Email</label>
+                <div class="ui left icon input">
+                    <input class="input" type="email" name="email" value="{{ email }}"
+                        placeholder="ex: yoda@dagobah.edu" />
+                    <i class="envelope icon"></i>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Mot de passe</label>
+                <div class="ui left icon input">
+                    <input class="input" type="password" name="password" placeholder="********" />
+                    <i class="lock icon"></i>
+                </div>
+            </div>
+
+            <div class="ui center aligned basic segment">
+                <button class="ui primary button">
+                    Se connecter
+                </button>
+                <a class="ui button" href="/">
+                    Annuler
+                </a>
+
+                <div class="ui horizontal divider">
+                    Ou
+                </div>
+
+                <a class="ui big button" href="/signup">
+                    <i class="signup icon"></i>
+                    S'inscrire
+                </a>
+            </div>
+        </form>
     </div>
-    <script>
-        $('.message .close').on('click', function () {
-            $(this).closest('.message').transition('fade');
-        });
-    </script>
-    {% endif %}
-
-    <form class="ui form" method="POST" action="/signin">
-        <div class="ui error message"></div>
-
-        <div class="field">
-            <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
-        </div>
-
-        <div class="field">
-            <label class="label">Email</label>
-            <div class="ui left icon input">
-                <input class="input" type="email" name="email" value="{{ email }}" placeholder="ex: yoda@dagobah.edu" />
-                <i class="envelope icon"></i>
-            </div>
-        </div>
-
-        <div class="field">
-            <label class="label">Mot de passe</label>
-            <div class="ui left icon input">
-                <input class="input" type="password" name="password" placeholder="********" />
-                <i class="lock icon"></i>
-            </div>
-        </div>
-
-        <div class="ui center aligned basic segment">
-            <button class="ui primary button">
-                Se connecter
-            </button>
-            <a class="ui button" href="/">
-                Annuler
-            </a>
-
-            <div class="ui horizontal divider">
-                Ou
-            </div>
-
-            <a class="ui big button" href="/signup">
-                <i class="signup icon"></i>
-                S'inscrire
-            </a>
-        </div>
-    </form>
 </div>
 
 <script>

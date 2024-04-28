@@ -13,78 +13,81 @@
 
     <div class="ui hidden divider"></div>
 
-    {% if error.len() > 0 %}
-    <div class="ui negative message">
-        <i class="close icon"></i>
-        <div class="header">
-            Inscription impossible
+    <div class="ui container">
+        {% if error.len() > 0 %}
+        <div class="ui negative message">
+            <i class="close icon"></i>
+            <div class="header">
+                Inscription impossible
+            </div>
+            {{ error }}
         </div>
-        {{ error }}
+        <script>
+            $('.message .close').on('click', function () {
+                $(this).closest('.message').transition('fade');
+            });
+        </script>
+        {% endif %}
+
+        <form class="ui form" method="POST" action="/signup">
+            <div class="ui error message"></div>
+
+            <div class="field">
+                <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
+            </div>
+
+            <div class="field">
+                <label>Nom</label>
+                <div class="ui left icon input">
+                    <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
+                    <i class="user icon"></i>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Email</label>
+                <div class="ui left icon input">
+                    <input class="input" type="email" name="email" value="{{ email }}"
+                        placeholder="ex: yoda@dagobah.edu" />
+                    <i class="envelope icon"></i>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Mot de passe</label>
+                <div class="ui left icon input">
+                    <input class="input" type="password" name="password" placeholder="********" />
+                    <i class="lock icon"></i>
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">Confirmez le mot de passe</label>
+                <div class="ui left icon input">
+                    <input class="input" type="password" name="confirm_password" placeholder="********" />
+                    <i class="redo icon"></i>
+                </div>
+            </div>
+
+            <div class="ui center aligned basic segment">
+                <button class="ui primary button">
+                    S'inscrire
+                </button>
+                <a class="ui button" href="/">
+                    Annuler
+                </a>
+
+                <div class="ui horizontal divider">
+                    Ou
+                </div>
+
+                <a class="ui big button" href="/signin">
+                    <i class="sign-in icon"></i>
+                    Se connecter
+                </a>
+            </div>
+        </form>
     </div>
-    <script>
-        $('.message .close').on('click', function () {
-            $(this).closest('.message').transition('fade');
-        });
-    </script>
-    {% endif %}
-
-    <form class="ui form" method="POST" action="/signup">
-        <div class="ui error message"></div>
-
-        <div class="field">
-            <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
-        </div>
-
-        <div class="field">
-            <label>Nom</label>
-            <div class="ui left icon input">
-                <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
-                <i class="user icon"></i>
-            </div>
-        </div>
-
-        <div class="field">
-            <label class="label">Email</label>
-            <div class="ui left icon input">
-                <input class="input" type="email" name="email" value="{{ email }}" placeholder="ex: yoda@dagobah.edu" />
-                <i class="envelope icon"></i>
-            </div>
-        </div>
-
-        <div class="field">
-            <label class="label">Mot de passe</label>
-            <div class="ui left icon input">
-                <input class="input" type="password" name="password" placeholder="********" />
-                <i class="lock icon"></i>
-            </div>
-        </div>
-
-        <div class="field">
-            <label class="label">Confirmez le mot de passe</label>
-            <div class="ui left icon input">
-                <input class="input" type="password" name="confirm_password" placeholder="********" />
-                <i class="redo icon"></i>
-            </div>
-        </div>
-
-        <div class="ui center aligned basic segment">
-            <button class="ui primary button">
-                S'inscrire
-            </button>
-            <a class="ui button" href="/">
-                Annuler
-            </a>
-
-            <div class="ui horizontal divider">
-                Ou
-            </div>
-
-            <a class="ui big button" href="/signin">
-                <i class="sign-in icon"></i>
-                Se connecter
-            </a>
-        </div>
-    </form>
 </div>
 
 <script>
