@@ -103,7 +103,7 @@ impl App {
         // Convert the user id into Uuid
         let user_uuid = Uuid::parse_str(&claims.sub).map_err(|error| {
             error!("{:?}", error);
-            AppError::DatabaseError
+            AppError::InvalidId
         })?;
 
         // Get apps from database
@@ -126,7 +126,7 @@ impl App {
         .await
         .map_err(|error| {
             error!("{:?}", error);
-            AppError::NotFound
+            AppError::DatabaseError
         })?;
 
         // Get apps
