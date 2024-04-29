@@ -2,7 +2,11 @@ pub mod app_list;
 
 use axum::response::Redirect;
 use serde::Deserialize;
-use sqlx::types::{time::OffsetDateTime, Uuid};
+use sqlx::{
+    postgres::PgRow,
+    types::{time::OffsetDateTime, Uuid},
+    FromRow, Row,
+};
 use tracing::log::error;
 
 use crate::{auth::IdTokenClaims, utils::date_time::DateTime, AppState};
@@ -26,7 +30,24 @@ pub struct App {
     pub jwt_secret: String,
     pub jwt_seconds_to_expire: i64,
     pub created_at: DateTime,
-    pub owner_email: String,
+    pub owner_email: Option<String>,
+}
+
+/// To get App from database
+impl FromRow<'_, PgRow> for App {
+    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
+        Ok(Self {
+            id: row.try_get::<Uuid, &str>("app_id")?.to_string(),
+            name: row.try_get("name")?,
+            base_url: row.try_get("base_url")?,
+            redirect_endpoint: row.try_get("redirect_endpoint")?,
+            logo_endpoint: row.try_get("logo_endpoint")?,
+            jwt_secret: row.try_get("jwt_secret")?,
+            jwt_seconds_to_expire: row.try_get("jwt_seconds_to_expire")?,
+            created_at: DateTime::from(row.try_get::<OffsetDateTime, &str>("created_at")?),
+            owner_email: row.try_get("owner_email")?,
+        })
+    }
 }
 
 /// Authenticator is the default app
@@ -37,7 +58,7 @@ impl Default for App {
             "".to_owned(),
             0,
             DateTime::default(),
-            "".to_owned(),
+            None,
         )
     }
 }
@@ -49,7 +70,7 @@ impl App {
         jwt_secret: String,
         jwt_seconds_to_expire: i64,
         created_at: DateTime,
-        owner_email: String,
+        owner_email: Option<String>,
     ) -> Self {
         Self {
             id: "".to_owned(),
@@ -107,19 +128,23 @@ impl App {
         })?;
 
         // Get apps from database
-        let result_apps: Vec<(Uuid, 
-            String,
-            String,
-            String,
-            String,
-            String,
-            i64,
-            OffsetDateTime,
-            String,)> = sqlx::query_as(
-            "SELECT a.app_id, a.name, a.base_url, a.redirect_endpoint, a.logo_endpoint, a.jwt_secret, a.jwt_seconds_to_expire, a.created_at, u.email 
-            FROM users u 
-            JOIN apps a ON u.id = a.owner_id 
-            WHERE u.user_id = $1",
+        let mut apps: Vec<App> = sqlx::query_as(
+            "SELECT 
+                a.app_id, 
+                a.name, 
+                a.base_url, 
+                a.redirect_endpoint, 
+                a.logo_endpoint, 
+                a.jwt_secret, 
+                a.jwt_seconds_to_expire, 
+                a.created_at, 
+                u.email as owner_email
+            FROM 
+                users u 
+            JOIN 
+                apps a ON u.id = a.owner_id 
+            WHERE 
+                u.user_id = $1",
         )
         .bind(user_uuid)
         .fetch_all(&state.db_pool)
@@ -129,24 +154,8 @@ impl App {
             AppError::DatabaseError
         })?;
 
-        // Get apps
-        let mut apps = Vec::new();
-        for app in result_apps {
-            apps.push(App {
-                id: app.0.to_string(),
-                name: app.1,
-                base_url: app.2,
-                redirect_endpoint: app.3,
-                logo_endpoint: app.4,
-                jwt_secret: app.5,
-                jwt_seconds_to_expire: app.6,
-                created_at: DateTime::from(app.7),
-                owner_email: app.8,
-            });
-        }
-
         // Add Authenticator if same email than this app mailer user
-        if state.authenticator_app.owner_email == claims.email {
+        if state.authenticator_app.owner_email.clone().unwrap_or_default() == claims.email {
             apps.push(state.authenticator_app.clone())
         }
 
@@ -163,30 +172,23 @@ impl App {
             AppError::InvalidId
         })?;
 
-        // Get apps from database
-        let (
-            name,
-            base_url,
-            redirect_endpoint,
-            logo_endpoint,
-            jwt_secret,
-            jwt_seconds_to_expire,
-            created_at,
-            owner_email,
-        ): (
-            String,
-            String,
-            String,
-            String,
-            String,
-            i64,
-            OffsetDateTime,
-            String,
-        ) = sqlx::query_as(
-            "SELECT a.name, a.base_url, a.redirect_endpoint, a.logo_endpoint, a.jwt_secret, a.jwt_seconds_to_expire, a.created_at, u.email 
+        // Get app from database
+        let app: App = sqlx::query_as(
+            "SELECT 
+                a.app_id, 
+                a.name, 
+                a.base_url, 
+                a.redirect_endpoint, 
+                a.logo_endpoint, 
+                a.jwt_secret, 
+                a.jwt_seconds_to_expire, 
+                a.created_at, 
+                u.email as owner_email
             FROM apps a 
-            LEFT OUTER JOIN users u ON u.id = a.owner_id 
-            WHERE a.app_id = $1",
+            LEFT OUTER JOIN users u ON 
+                u.id = a.owner_id 
+            WHERE 
+                a.app_id = $1",
         )
         .bind(app_uuid)
         .fetch_one(&state.db_pool)
@@ -196,16 +198,6 @@ impl App {
             AppError::NotFound
         })?;
 
-        Ok(App {
-            id: app_id.to_string(),
-            name,
-            base_url,
-            redirect_endpoint,
-            logo_endpoint,
-            jwt_secret,
-            jwt_seconds_to_expire,
-            created_at: DateTime::from(created_at),
-            owner_email,
-        })
+        Ok(app)
     }
 }

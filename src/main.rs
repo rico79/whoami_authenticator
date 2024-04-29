@@ -67,7 +67,7 @@ async fn http_server(
             secrets.get("JWT_SECRET").unwrap(),
             secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
             DateTime::from_timestamp(1712899091),
-            secrets.get("MAIL_USER_NAME").unwrap(),
+            secrets.get("MAIL_USER_NAME"),
         ),
         db_pool,
         mailer: AppMailer::new(&secrets),
