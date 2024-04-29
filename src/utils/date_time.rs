@@ -13,6 +13,15 @@ impl DateTime {
     pub fn from_timestamp(timestamp: i64) -> Self {
         Self { timestamp }
     }
+
+    /// Format following pattern
+    pub fn format_to_string(&self, pattern: &str) -> String {
+        chrono::DateTime::from_timestamp(self.timestamp, 0)
+            .unwrap_or_default()
+            .with_timezone(&chrono::Local)
+            .format(pattern)
+            .to_string()
+    }
 }
 
 /// Generate DateTime from sqlx OffsetDateTime

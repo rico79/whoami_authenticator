@@ -1,5 +1,25 @@
-<ul>
+<div class="ui link cards">
     {% for app in apps %}
-    <li>{{ app.name }}</li>
+    <div class="card">
+        <div class="content">
+            <img class="right floated mini ui image" src="{{ app.logo_url() }}">
+            <div class="header">{{ app.name }}</div>
+            <div class="meta">
+                <a>{{ app.owner_email.clone().unwrap_or_default() }}</a>
+            </div>
+            <div class="description">
+                {{ app.description }}
+            </div>
+        </div>
+        <div class="extra content">
+            <span class="right floated">
+                Créée le {{ app.created_at.format_to_string("%d/%m/%Y") }}
+            </span>
+            <span>
+                <i class="user icon"></i>
+                75
+            </span>
+        </div>
+    </div>
     {% endfor %}
-</ul>
+</div>

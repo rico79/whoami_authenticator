@@ -24,6 +24,7 @@ pub enum AppError {
 pub struct App {
     pub id: String,
     pub name: String,
+    pub description: String,
     pub base_url: String,
     redirect_endpoint: String,
     logo_endpoint: String,
@@ -39,6 +40,7 @@ impl FromRow<'_, PgRow> for App {
         Ok(Self {
             id: row.try_get::<Uuid, &str>("app_id")?.to_string(),
             name: row.try_get("name")?,
+            description: row.try_get("description")?,
             base_url: row.try_get("base_url")?,
             redirect_endpoint: row.try_get("redirect_endpoint")?,
             logo_endpoint: row.try_get("logo_endpoint")?,
@@ -75,6 +77,7 @@ impl App {
         Self {
             id: "".to_owned(),
             name: "Authenticator".to_owned(),
+            description: "Gère la connexion de vos utilisateurs pour vos apps".to_owned(),
             base_url,
             redirect_endpoint: "/welcome".to_owned(),
             logo_endpoint: "/assets/images/logo.png".to_owned(),
@@ -132,6 +135,7 @@ impl App {
             "SELECT 
                 a.app_id, 
                 a.name, 
+                a.description, 
                 a.base_url, 
                 a.redirect_endpoint, 
                 a.logo_endpoint, 
@@ -177,6 +181,7 @@ impl App {
             "SELECT 
                 a.app_id, 
                 a.name, 
+                a.description, 
                 a.base_url, 
                 a.redirect_endpoint, 
                 a.logo_endpoint, 
