@@ -5,7 +5,7 @@ use serde::Deserialize;
 use sqlx::types::{time::OffsetDateTime, Uuid};
 use tracing::log::error;
 
-use crate::{utils::date_time::DateTime, AppState};
+use crate::{auth::IdTokenClaims, utils::date_time::DateTime, AppState};
 
 /// Error types
 #[derive(Debug, Deserialize)]
@@ -98,10 +98,10 @@ impl App {
     /// return list of apps
     pub async fn select_own_apps(
         state: &AppState,
-        user_id: &String,
+        claims: &IdTokenClaims,
     ) -> Result<Vec<Self>, AppError> {
         // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(user_id).map_err(|error| {
+        let user_uuid = Uuid::parse_str(&claims.sub).map_err(|error| {
             error!("{:?}", error);
             AppError::DatabaseError
         })?;
@@ -143,6 +143,11 @@ impl App {
                 created_at: DateTime::from(app.7),
                 owner_email: app.8,
             });
+        }
+
+        // Add Authenticator if same email than this app mailer user
+        if state.authenticator_app.owner_email == claims.email {
+            apps.push(state.authenticator_app.clone())
         }
 
         Ok(apps)
