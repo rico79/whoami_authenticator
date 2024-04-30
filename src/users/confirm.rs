@@ -3,7 +3,7 @@ use axum::extract::{Query, State};
 use serde::Deserialize;
 use tracing::error;
 
-use crate::{apps::App, auth::IdTokenClaims, general::MessageTemplate, AppState};
+use crate::{apps::App, auth::IdTokenClaims, general::message::MessageTemplate, AppState};
 
 use super::{User, UserError};
 

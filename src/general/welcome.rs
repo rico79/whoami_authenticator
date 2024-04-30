@@ -7,12 +7,14 @@ use crate::{
     AppState,
 };
 
+use super::navbar::NavBarTemplate;
+
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
 #[template(path = "general/welcome.html")]
 pub struct PageTemplate {
-    claims: Option<IdTokenClaims>,
+    navbar: NavBarTemplate,
     own_apps: AppListTemplate,
 }
 
@@ -20,7 +22,9 @@ pub struct PageTemplate {
 /// Returns the page using the dedicated HTML template
 pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl IntoResponse {
     PageTemplate {
-        claims: Some(claims.clone()),
+        navbar: NavBarTemplate {
+            claims: Some(claims.clone()),
+        },
         own_apps: AppListTemplate {
             apps: App::select_own_apps(&state, &claims).await.unwrap(),
         },

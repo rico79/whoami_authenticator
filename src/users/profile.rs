@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     auth::{create_session_into_response, IdTokenClaims},
-    general::MessageTemplate,
+    general::{message::MessageTemplate, navbar::NavBarTemplate},
     AppState,
 };
 
@@ -16,7 +16,7 @@ use super::{confirm::EmailConfirmation, User};
 #[derive(Template)]
 #[template(path = "users/profile.html")]
 pub struct PageTemplate {
-    claims: Option<IdTokenClaims>,
+    navbar: NavBarTemplate,
     user: Option<User>,
     confirm_send_url: String,
     password_message: MessageTemplate,
@@ -46,7 +46,9 @@ impl PageTemplate {
         };
 
         PageTemplate {
-            claims: Some(claims.clone()),
+            navbar: NavBarTemplate {
+                claims: Some(claims),
+            },
             user: user,
             confirm_send_url,
             password_message,
@@ -105,24 +107,14 @@ pub async fn update_profile(
                 )
                 .into_response()
             } else {
-                PageTemplate::from(
-                    &state,
-                    claims,
-                    None,
-                    MessageTemplate::empty(),
-                )
-                .await
-                .into_response()
+                PageTemplate::from(&state, claims, None, MessageTemplate::empty())
+                    .await
+                    .into_response()
             }
         }
-        None => PageTemplate::from(
-            &state,
-            claims,
-            None,
-            MessageTemplate::empty(),
-        )
-        .await
-        .into_response(),
+        None => PageTemplate::from(&state, claims, None, MessageTemplate::empty())
+            .await
+            .into_response(),
     }
 }
 
@@ -152,10 +144,6 @@ pub async fn update_password(
             true,
         ),
 
-        Err(error) => MessageTemplate::from_body(
-            "negative".to_owned(),
-            error.to_string(),
-            true,
-        ),
+        Err(error) => MessageTemplate::from_body("negative".to_owned(), error.to_string(), true),
     }
 }

@@ -2,7 +2,7 @@ use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::State;
 
-use crate::{auth::IdTokenClaims, AppState};
+use crate::{auth::IdTokenClaims, general::navbar::NavBarTemplate, AppState};
 
 use super::App;
 
@@ -11,7 +11,7 @@ use super::App;
 #[derive(Template)]
 #[template(path = "apps/app.html")]
 pub struct PageTemplate {
-    claims: Option<IdTokenClaims>,
+    navbar: NavBarTemplate,
     app: App,
 }
 
@@ -19,7 +19,7 @@ pub struct PageTemplate {
 /// Returns the page using the dedicated HTML template
 pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl IntoResponse {
     PageTemplate {
-        claims: Some(claims),
+        navbar: NavBarTemplate{claims: Some(claims)},
         app: state.authenticator_app,
     }
 }
