@@ -1,6 +1,6 @@
 <div class="ui link cards">
     {% for app in apps %}
-    <div class="card">
+    <div class="card" hx-get="/app?id={{ app.id }}" hx-trigger="click" hx-target="body">
         <div class="content">
             <img class="right floated mini ui image" src="{{ app.logo_url() }}">
             <div class="header">{{ app.name }}</div>

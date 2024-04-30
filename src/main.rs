@@ -86,6 +86,7 @@ async fn http_server(
             get(users::profile::get).post(users::profile::update_profile),
         )
         .route("/password", post(users::profile::update_password))
+        .route("/app", get(apps::app::get).post(apps::app::post))
         .nest_service("/assets", ServeDir::new("assets"))
         .with_state(state);
 

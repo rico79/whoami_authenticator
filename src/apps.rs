@@ -1,4 +1,5 @@
 pub mod app_list;
+pub mod app;
 
 use axum::response::Redirect;
 use serde::Deserialize;

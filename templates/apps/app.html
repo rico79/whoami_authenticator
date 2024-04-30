@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% include "navbar.html" %}
+
+<div class="ui main container">
+    <h2 class="ui center aligned header">
+        {{ app.name }}
+        <div class="sub header">
+            Créée le {{ app.created_at }}
+        </div>
+    </h2>
+
+    <h4 class="ui dividing header">Informations générales</h4>
+
+    <div class="ui container">
+        <form class="ui form" method="POST" action="/app">
+            <div class="ui error message"></div>
+
+            <div class="field">
+                <label>Nom</label>
+                <div class="ui left icon input">
+                    <input class="input" type="text" name="name" value="{{ app.name }}" placeholder="ex: Firefox" />
+                    <i class="pen square icon"></i>
+                </div>
+            </div>
+
+            <button class="ui primary button">
+                Modifier
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
