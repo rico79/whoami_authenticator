@@ -4,31 +4,55 @@
 {{ navbar|escape("none") }}
 
 <div class="ui main container">
+
+    {% if let Some(app) = app %}
+    {% if app.name.len() > 0 %}
     <h2 class="ui center aligned header">
         {{ app.name }}
         <div class="sub header">
             Créée le {{ app.created_at }}
         </div>
     </h2>
+    {% else %}
+    <h2 class="ui center aligned header">
+        Nouvelle App
+        <div class="sub header">
+            Créez votre app!
+        </div>
+    </h2>
+    {% endif %}
 
     <h4 class="ui dividing header">Informations générales</h4>
 
     <div class="ui container">
         <form class="ui form" method="POST" action="/app">
+            <input type="hidden" name="id" value="{{ app.id }}" />
             <div class="ui error message"></div>
 
             <div class="field">
                 <label>Nom</label>
                 <div class="ui left icon input">
-                    <input class="input" type="text" name="name" value="{{ app.name }}" placeholder="ex: Firefox" />
-                    <i class="pen square icon"></i>
+                    <input class="input" readonly="{{ read_only }}" type="text" name="name" value="{{ app.name }}"
+                        placeholder="ex: Firefox" />
+                    <i class="star icon"></i>
                 </div>
             </div>
 
+            {% if !read_only %}
             <button class="ui primary button">
-                Modifier
+                Enregistrer
             </button>
+            {% endif %}
         </form>
     </div>
+
+    {% else %}
+    <div class="ui negative message">
+        <div class="header">
+            Erreur inattendue
+        </div>
+        Veuillez réessayer plus tard
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

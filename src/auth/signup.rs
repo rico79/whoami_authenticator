@@ -69,7 +69,7 @@ impl PageTemplate {
 pub struct QueryParams {
     name: Option<String>,
     email: Option<String>,
-    app_id: Option<String>,
+    app_id: Option<i64>,
     error: Option<UserError>,
 }
 
@@ -80,8 +80,11 @@ pub async fn get(
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Get app to connect to
-    let app =
-        App::select_app_or_authenticator(&state, &params.app_id.clone().unwrap_or("".to_owned()));
+    let app = App::select_app_or_authenticator(
+        &state,
+        params.app_id.unwrap_or(state.authenticator_app.id),
+    )
+    .await;
 
     PageTemplate::from_query(params, app)
 }
@@ -94,7 +97,7 @@ pub struct SignupForm {
     email: String,
     password: String,
     confirm_password: String,
-    app_id: String,
+    app_id: i64,
 }
 
 /// Post handler
@@ -105,7 +108,7 @@ pub async fn post(
     Form(form): Form<SignupForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
     // Get App
-    let app = App::select_app_or_authenticator(&state, &form.app_id);
+    let app = App::select_app_or_authenticator(&state, form.app_id).await;
 
     // Create user and get user_id generated
     let user = User::create(
@@ -134,7 +137,7 @@ pub async fn post(
         &state,
         &form.email,
         &form.password,
-        &app.id,
+        app.id,
     )
     .await
     {

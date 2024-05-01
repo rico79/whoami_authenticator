@@ -17,7 +17,7 @@ use axum::{
 };
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 use utils::{date_time::DateTime, email::AppMailer};
 
 /// App state
@@ -60,15 +60,19 @@ async fn http_server(
         .await
         .map_err(CustomError::new)?;
 
+    // Init authenticator app
+    let authenticator_app = App::init_authenticator_app(
+        &db_pool,
+        secrets.get("APP_URL").unwrap(),
+        secrets.get("JWT_SECRET").unwrap(),
+        secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
+        DateTime::from_timestamp(1712899091),
+        secrets.get("MAIL_USER_NAME").unwrap(),
+    ).await;
+
     // Set the app state
     let state = AppState {
-        authenticator_app: App::init_authenticator_app(
-            secrets.get("APP_URL").unwrap(),
-            secrets.get("JWT_SECRET").unwrap(),
-            secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
-            DateTime::from_timestamp(1712899091),
-            secrets.get("MAIL_USER_NAME"),
-        ),
+        authenticator_app,
         db_pool,
         mailer: AppMailer::new(&secrets),
     };
@@ -88,6 +92,7 @@ async fn http_server(
         .route("/password", post(users::profile::update_password))
         .route("/app", get(apps::app::get).post(apps::app::post))
         .nest_service("/assets", ServeDir::new("assets"))
+        .nest_service("/favicon.ico", ServeFile::new("assets/favicon.ico"))
         .with_state(state);
 
     Ok(router.into())

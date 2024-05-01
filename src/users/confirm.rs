@@ -1,6 +1,7 @@
 use askama_axum::Template;
 use axum::extract::{Query, State};
 use serde::Deserialize;
+use sqlx::types::Uuid;
 use tracing::error;
 
 use crate::{apps::App, auth::IdTokenClaims, general::message::MessageTemplate, AppState};
@@ -49,7 +50,7 @@ impl EmailConfirmation {
     pub fn send(&self) -> Result<(), UserError> {
         // Generate code
         let token = IdTokenClaims::new(
-            self.user.id.clone(),
+            self.user.id,
             self.user.name.clone(),
             self.user.email.clone(),
             604800, // 604800 seconds = 1 Week
@@ -87,7 +88,7 @@ L'équipe de Brouclean Softwares",self.user.name, self.app.name,validation_url);
             body,
         ) {
             error!(
-                "Could not send email confirmation to '{}' due to : {:?}",
+                "Sending email confirmation to '{}' -> {:?}",
                 self.user.email, error
             );
 
@@ -163,7 +164,7 @@ impl PageTemplate {
 #[derive(Deserialize)]
 pub struct QueryParams {
     action: Action,
-    app_id: String,
+    app_id: i64,
     token: Option<String>,
     user_id: Option<String>,
 }
@@ -175,13 +176,16 @@ pub async fn get(
     Query(params): Query<QueryParams>,
 ) -> Result<PageTemplate, PageTemplate> {
     // Get the app
-    let app = App::select_app_or_authenticator(&state, &params.app_id);
+    let app = App::select_app_or_authenticator(&state, params.app_id).await;
 
-    match params.action {
-        // Send email
-        Action::Send => {
+    match (
+        params.action,
+        Uuid::parse_str(&params.user_id.unwrap_or_default()).ok(),
+    ) {
+        // Send email to user
+        (Action::Send, Some(user_id)) => {
             // Get the user
-            let user = User::select_from_user_id(&state, &params.user_id.unwrap_or_default())
+            let user = User::select_from_id(&state, user_id)
                 .await
                 .map_err(|_| PageTemplate::from(Action::Send, app.clone(), None))?;
 
@@ -192,8 +196,11 @@ pub async fn get(
             }
         }
 
+        // Send email to no one
+        (Action::Send, None) => Err(PageTemplate::from(Action::Send, app, None)),
+
         // Confirm email
-        Action::Confirm => {
+        (Action::Confirm, _) => {
             // Confirm email into database and get email confirmed
             let email_confirmed = User::confirm_email(&state, &params.token.unwrap_or_default())
                 .await

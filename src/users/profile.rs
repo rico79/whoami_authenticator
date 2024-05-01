@@ -32,7 +32,7 @@ impl PageTemplate {
     ) -> Self {
         // Get user
         let user = match returned_user {
-            None => User::select_from_user_id(&state, &claims.sub).await.ok(),
+            None => User::select_from_id(&state, claims.user_id()).await.ok(),
             Some(user) => Some(user),
         };
 
@@ -78,7 +78,7 @@ pub async fn update_profile(
     Form(form): Form<ProfileForm>,
 ) -> impl IntoResponse {
     // Update profile and get user
-    let user = User::update_profile(&state, &claims.sub, &form.name, &form.email)
+    let user = User::update_profile(&state, &claims.user_id(), &form.name, &form.email)
         .await
         .ok();
 
@@ -86,7 +86,7 @@ pub async fn update_profile(
         Some(updated_user) => {
             // Renew the token if profile updated
             let claims = IdTokenClaims::new(
-                updated_user.id.clone(),
+                updated_user.id,
                 updated_user.name.clone(),
                 updated_user.email.clone(),
                 state.authenticator_app.jwt_seconds_to_expire.clone(),
@@ -134,7 +134,7 @@ pub async fn update_password(
 ) -> impl IntoResponse {
     // Update password and get user
     let user =
-        User::update_password(&state, &claims.sub, &form.password, &form.confirm_password).await;
+        User::update_password(&state, &claims.user_id(), &form.password, &form.confirm_password).await;
 
     // Check user
     match user {

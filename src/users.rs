@@ -4,7 +4,11 @@ pub mod profile;
 use std::fmt;
 
 use serde::Deserialize;
-use sqlx::types::{time::OffsetDateTime, Uuid};
+use sqlx::{
+    postgres::PgRow,
+    types::{time::OffsetDateTime, Uuid},
+    FromRow, PgPool, Row,
+};
 use tracing::log::error;
 
 use crate::{
@@ -49,28 +53,35 @@ impl fmt::Display for UserError {
 /// User struct
 #[derive(Clone, Debug)]
 pub struct User {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub email: String,
     pub email_confirmed: bool,
     pub created_at: DateTime,
 }
 
+/// To get User from database
+impl FromRow<'_, PgRow> for User {
+    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            name: row.try_get("name")?,
+            email: row.try_get("email")?,
+            email_confirmed: row.try_get("email_confirmed")?,
+            created_at: DateTime::from(row.try_get::<OffsetDateTime, &str>("created_at")?),
+        })
+    }
+}
+
 impl User {
     /// Get user data
     /// Get user id
     /// Return the User
-    pub async fn select_from_user_id(state: &AppState, user_id: &String) -> Result<Self, UserError> {
-        // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(user_id).map_err(|error| {
-            error!("{:?}", error);
-            UserError::InvalidId
-        })?;
-
+    pub async fn select_from_id(state: &AppState, user_id: Uuid) -> Result<Self, UserError> {
         // Get user from database
-        let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
-            sqlx::query_as(
-                "SELECT 
+        let user: User = sqlx::query_as(
+            "SELECT 
+                    id,
                     name, 
                     email, 
                     email_confirmed, 
@@ -78,23 +89,48 @@ impl User {
                 FROM 
                     users 
                 WHERE 
-                    user_id = $1",
-            )
-            .bind(user_uuid)
-            .fetch_one(&state.db_pool)
-            .await
-            .map_err(|error| {
-                error!("{:?}", error);
-                UserError::NotFound
-            })?;
+                    id = $1",
+        )
+        .bind(user_id)
+        .fetch_one(&state.db_pool)
+        .await
+        .map_err(|error| {
+            error!("Selecting user from id {} -> {:?}", user_id, error);
+            UserError::NotFound
+        })?;
 
-        Ok(User {
-            id: user_id.to_string(),
-            name,
-            email,
-            email_confirmed,
-            created_at: DateTime::from(created_at),
-        })
+        Ok(user)
+    }
+
+    /// Get user data
+    /// Get user email
+    /// Return the User
+    pub async fn select_from_email(
+        db_pool: &PgPool,
+        user_mail: &String,
+    ) -> Result<Self, UserError> {
+        // Get user from database
+        let user: User = sqlx::query_as(
+            "SELECT
+                    id,
+                    name, 
+                    email, 
+                    email_confirmed, 
+                    created_at 
+                FROM 
+                    users 
+                WHERE 
+                    email = $1",
+        )
+        .bind(user_mail)
+        .fetch_one(db_pool)
+        .await
+        .map_err(|error| {
+            error!("Selecting user from email {} -> {:?}", user_mail, error);
+            UserError::NotFound
+        })?;
+
+        Ok(user)
     }
 
     /// Update user profile
@@ -102,46 +138,37 @@ impl User {
     /// Return the User
     pub async fn update_profile(
         state: &AppState,
-        user_id: &String,
+        user_id: &Uuid,
         name: &String,
         email: &String,
     ) -> Result<Self, UserError> {
-        // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(user_id).map_err(|error| {
-            error!("{:?}", error);
-            UserError::InvalidId
-        })?;
-
         // Update ang get user from database
-        let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
-            sqlx::query_as(
-                "UPDATE users 
+        let user: User = sqlx::query_as(
+            "UPDATE users 
                 SET 
                     name = $1, 
                     email = $2, 
                     email_confirmed = (email=$2 AND email_confirmed) 
                 WHERE 
-                    user_id = $3 
+                    id = $3 
                 RETURNING 
+                    id,
                     name, 
                     email, 
                     email_confirmed, 
                     created_at",
-            )
-            .bind(name)
-            .bind(email)
-            .bind(user_uuid)
-            .fetch_one(&state.db_pool)
-            .await
-            .map_err(|error| {error!("{:?}", error); UserError::NotFound})?;
+        )
+        .bind(name)
+        .bind(email)
+        .bind(user_id)
+        .fetch_one(&state.db_pool)
+        .await
+        .map_err(|error| {
+            error!("Updating profile of {} -> {:?}", user_id, error);
+            UserError::NotFound
+        })?;
 
-        Ok(User {
-            id: user_id.to_string(),
-            name,
-            email,
-            email_confirmed,
-            created_at: DateTime::from(created_at),
-        })
+        Ok(user)
     }
 
     /// Update user password
@@ -149,16 +176,10 @@ impl User {
     /// Return the User
     pub async fn update_password(
         state: &AppState,
-        user_id: &String,
+        user_id: &Uuid,
         password: &String,
         confirm_password: &String,
     ) -> Result<Self, UserError> {
-        // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(user_id).map_err(|error| {
-            error!("{:?}", error);
-            UserError::InvalidId
-        })?;
-
         // Check if missing data
         if password.is_empty() || confirm_password.is_empty() {
             return Err(UserError::MissingInformation);
@@ -171,37 +192,34 @@ impl User {
 
         // Encrypt the password
         let encrypted_password = encrypt_text(password).map_err(|error| {
-            error!("{:?}", error);
+            error!("Updating password for user {} -> {:?}", user_id, error);
             UserError::CryptoError
         })?;
 
         // Update ang get user from database
-        let (name, email, email_confirmed, created_at): (String, String, bool, OffsetDateTime) =
-            sqlx::query_as(
-                "UPDATE users 
+        let user: User = sqlx::query_as(
+            "UPDATE users 
                 SET 
                     encrypted_password = $1 
                 WHERE 
-                    user_id = $2 
+                    id = $2 
                 RETURNING 
+                    id,
                     name, 
                     email, 
                     email_confirmed, 
                     created_at",
-            )
-            .bind(encrypted_password)
-            .bind(user_uuid)
-            .fetch_one(&state.db_pool)
-            .await
-            .map_err(|error| {error!("{:?}", error); UserError::NotFound})?;
+        )
+        .bind(encrypted_password)
+        .bind(user_id)
+        .fetch_one(&state.db_pool)
+        .await
+        .map_err(|error| {
+            error!("Updating password for user {} -> {:?}", user_id, error);
+            UserError::NotFound
+        })?;
 
-        Ok(User {
-            id: user_id.to_string(),
-            name,
-            email,
-            email_confirmed,
-            created_at: DateTime::from(created_at),
-        })
+        Ok(user)
     }
 
     /// Confirm email
@@ -214,14 +232,8 @@ impl User {
             state.authenticator_app.jwt_secret.clone(),
         )
         .map_err(|error| {
-            error!("{:?}", error);
+            error!("Confirming email for token {} -> {:?}", token, error);
             UserError::EmailConfirmationFailed
-        })?;
-
-        // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(&claims.sub).map_err(|error| {
-            error!("{:?}", error);
-            UserError::InvalidId
         })?;
 
         // Confirm email into database and get email confirmed
@@ -230,17 +242,20 @@ impl User {
             SET 
                 email_confirmed = true 
             WHERE 
-                user_id = $1 
+                id = $1 
                 and email = $2 
             RETURNING 
                 email, 
                 email_confirmed",
         )
-        .bind(user_uuid)
-        .bind(claims.email)
+        .bind(claims.user_id())
+        .bind(&claims.email)
         .fetch_one(&state.db_pool)
         .await
-        .map_err(|error| {error!("{:?}", error); UserError::NotFound})?;
+        .map_err(|error| {
+            error!("Confirming email for email {} -> {:?}", claims.email, error);
+            UserError::NotFound
+        })?;
 
         // Check if confirmed
         if confirmed {
@@ -274,22 +289,22 @@ impl User {
 
         // Encrypt the password
         let encrypted_password = encrypt_text(password).map_err(|error| {
-            error!("{:?}", error);
+            error!("Creating user {} -> {:?}", name, error);
             UserError::CryptoError
         })?;
 
         // Insert the user
-        let (user_id, created_at): (Uuid, OffsetDateTime) = sqlx::query_as(
+        let user: User = sqlx::query_as(
             "INSERT INTO users (
                 name, 
                 email, 
                 encrypted_password) 
-            VALUES (
-                $1, 
-                $2, 
-                $3) 
+            VALUES ($1, $2, $3) 
             RETURNING 
-                user_id, 
+                id,
+                name, 
+                email, 
+                email_confirmed, 
                 created_at",
         )
         .bind(name)
@@ -302,20 +317,17 @@ impl User {
                 if error.is_unique_violation() {
                     UserError::AlreadyExisting
                 } else {
-                    error!("{:?}", error); 
+                    error!("Creating user {} -> {:?}", name, error);
                     UserError::DatabaseError
                 }
             }
-            _ => {error!("{:?}", error); UserError::DatabaseError},
+            _ => {
+                error!("Creating user {} -> {:?}", name, error);
+                UserError::DatabaseError
+            }
         })?;
 
         // Return user
-        Ok(User {
-            id: user_id.to_string(),
-            name: name.to_string(),
-            email: email.to_string(),
-            email_confirmed: false,
-            created_at: DateTime::from(created_at),
-        })
+        Ok(user)
     }
 }

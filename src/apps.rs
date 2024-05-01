@@ -1,16 +1,14 @@
-pub mod app_list;
 pub mod app;
+pub mod app_list;
 
 use axum::response::Redirect;
 use serde::Deserialize;
 use sqlx::{
-    postgres::PgRow,
-    types::{time::OffsetDateTime, Uuid},
-    FromRow, Row,
+    postgres::PgRow, types::{time::OffsetDateTime, Uuid}, FromRow, PgPool, Row
 };
 use tracing::log::error;
 
-use crate::{auth::IdTokenClaims, utils::date_time::DateTime, AppState};
+use crate::{auth::IdTokenClaims, users::User, utils::date_time::DateTime, AppState};
 
 /// Error types
 #[derive(Debug, Deserialize)]
@@ -23,7 +21,7 @@ pub enum AppError {
 /// App struct
 #[derive(Clone, Debug)]
 pub struct App {
-    pub id: String,
+    pub id: i64,
     pub name: String,
     pub description: String,
     pub base_url: String,
@@ -32,14 +30,14 @@ pub struct App {
     pub jwt_secret: String,
     pub jwt_seconds_to_expire: i64,
     pub created_at: DateTime,
-    pub owner_email: Option<String>,
+    pub owner_id: Option<Uuid>,
 }
 
 /// To get App from database
 impl FromRow<'_, PgRow> for App {
     fn from_row(row: &PgRow) -> sqlx::Result<Self> {
         Ok(Self {
-            id: row.try_get::<Uuid, &str>("app_id")?.to_string(),
+            id: row.try_get("id")?,
             name: row.try_get("name")?,
             description: row.try_get("description")?,
             base_url: row.try_get("base_url")?,
@@ -48,35 +46,44 @@ impl FromRow<'_, PgRow> for App {
             jwt_secret: row.try_get("jwt_secret")?,
             jwt_seconds_to_expire: row.try_get("jwt_seconds_to_expire")?,
             created_at: DateTime::from(row.try_get::<OffsetDateTime, &str>("created_at")?),
-            owner_email: row.try_get("owner_email")?,
+            owner_id: row.try_get("owner_id")?,
         })
     }
 }
 
-/// Authenticator is the default app
-impl Default for App {
-    fn default() -> Self {
-        Self::init_authenticator_app(
-            "".to_owned(),
-            "".to_owned(),
-            0,
-            DateTime::default(),
-            None,
-        )
-    }
-}
-
 impl App {
+    /// New app
+    pub fn new() -> Self {
+        Self {
+            id: -1,
+            name: "".to_owned(),
+            description: "".to_owned(),
+            base_url: "".to_owned(),
+            redirect_endpoint: "".to_owned(),
+            logo_endpoint: "".to_owned(),
+            jwt_secret: "".to_owned(),
+            jwt_seconds_to_expire: 0,
+            created_at: DateTime::default(),
+            owner_id: None,
+        }
+    }
+
+    /// Check if new app
+    pub fn is_new(&self) -> bool {
+        self.id < 0
+    }
+
     /// Authenticator app
-    pub fn init_authenticator_app(
+    pub async fn init_authenticator_app(
+        db_pool: &PgPool,
         base_url: String,
         jwt_secret: String,
         jwt_seconds_to_expire: i64,
         created_at: DateTime,
-        owner_email: Option<String>,
+        email: String,
     ) -> Self {
         Self {
-            id: "".to_owned(),
+            id: 0,
             name: "Authenticator".to_owned(),
             description: "Gère la connexion de vos utilisateurs pour vos apps".to_owned(),
             base_url,
@@ -85,21 +92,33 @@ impl App {
             jwt_secret,
             jwt_seconds_to_expire,
             created_at,
-            owner_email,
+            owner_id: User::select_from_email(&db_pool, &email)
+                .await
+                .map(|owner| owner.id)
+                .ok(),
         }
+    }
+
+    /// Check if app is authenticator
+    pub fn is_authenticator_app(&self) -> bool {
+        self.id == 0
+    }
+
+    /// Check if this user email can update the app
+    pub fn can_be_updated_by(&self, user_id: Uuid) -> bool {
+        !self.is_authenticator_app()
+            && match self.owner_id.clone() {
+                Some(owner_id) => owner_id == user_id.clone(),
+                None => false,
+            }
     }
 
     /// Get app from id
     /// If no app is found return authenticator app
-    pub fn select_app_or_authenticator(state: &AppState, app_id: &String) -> Self {
-        if app_id.len() > 0 {
-            // Get App
-
-            // Return values
-            state.authenticator_app.clone()
-        } else {
-            state.authenticator_app.clone()
-        }
+    pub async fn select_app_or_authenticator(state: &AppState, app_id: i64) -> Self {
+        Self::select_from_app_id(state, app_id)
+            .await
+            .unwrap_or(state.authenticator_app.clone())
     }
 
     /// Create redirect url
@@ -125,16 +144,10 @@ impl App {
         state: &AppState,
         claims: &IdTokenClaims,
     ) -> Result<Vec<Self>, AppError> {
-        // Convert the user id into Uuid
-        let user_uuid = Uuid::parse_str(&claims.sub).map_err(|error| {
-            error!("{:?}", error);
-            AppError::InvalidId
-        })?;
-
         // Get apps from database
         let mut apps: Vec<App> = sqlx::query_as(
             "SELECT 
-                a.app_id, 
+                a.id, 
                 a.name, 
                 a.description, 
                 a.base_url, 
@@ -149,18 +162,18 @@ impl App {
             JOIN 
                 apps a ON u.id = a.owner_id 
             WHERE 
-                u.user_id = $1",
+                u.id = $1",
         )
-        .bind(user_uuid)
+        .bind(claims.user_id())
         .fetch_all(&state.db_pool)
         .await
         .map_err(|error| {
-            error!("{:?}", error);
+            error!("Selecting apps for owner {} -> {:?}", claims.user_id(), error);
             AppError::DatabaseError
         })?;
 
         // Add Authenticator if same email than this app mailer user
-        if state.authenticator_app.owner_email.clone().unwrap_or_default() == claims.email {
+        if state.authenticator_app.owner_id.clone().unwrap_or_default() == claims.user_id() {
             apps.push(state.authenticator_app.clone())
         }
 
@@ -170,17 +183,16 @@ impl App {
     /// Select app
     /// Get app_id
     /// return app
-    pub async fn select_from_app_id(state: &AppState, app_id: &String) -> Result<Self, AppError> {
-        // Convert the app id into Uuid
-        let app_uuid = Uuid::parse_str(app_id).map_err(|error| {
-            error!("{:?}", error);
-            AppError::InvalidId
-        })?;
+    pub async fn select_from_app_id(state: &AppState, app_id: i64) -> Result<Self, AppError> {
+        // Check if authenticator
+        if app_id == state.authenticator_app.id {
+            return Ok(state.authenticator_app.clone());
+        }
 
         // Get app from database
         let app: App = sqlx::query_as(
             "SELECT 
-                a.app_id, 
+                a.id, 
                 a.name, 
                 a.description, 
                 a.base_url, 
@@ -194,16 +206,110 @@ impl App {
             LEFT OUTER JOIN users u ON 
                 u.id = a.owner_id 
             WHERE 
-                a.app_id = $1",
+                a.id = $1",
         )
-        .bind(app_uuid)
+        .bind(app_id)
         .fetch_one(&state.db_pool)
         .await
         .map_err(|error| {
-            error!("{:?}", error);
+            error!("Selecting apps from id {} -> {:?}", app_id, error);
             AppError::NotFound
         })?;
 
         Ok(app)
+    }
+
+    /// Save app
+    /// return app
+    pub async fn save(&self, state: &AppState, claims: &IdTokenClaims) -> Result<Self, AppError> {
+        // Check if authenticator
+        if self.is_authenticator_app() {
+            return Ok(state.authenticator_app.clone());
+        }
+
+        if self.is_new() {
+            // Insert if new
+            let app: App = sqlx::query_as(
+                "INSERT INTO apps (
+                    name, 
+                    description, 
+                    base_url, 
+                    redirect_endpoint, 
+                    logo_endpoint, 
+                    jwt_secret, 
+                    jwt_seconds_to_expire, 
+                    owner_email) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+                RETURNING 
+                    id,
+                    name, 
+                    description, 
+                    base_url, 
+                    redirect_endpoint, 
+                    logo_endpoint, 
+                    jwt_secret, 
+                    jwt_seconds_to_expire, 
+                    a.created_at, 
+                    owner_email",
+            )
+            .bind(self.name.clone())
+            .bind(self.description.clone())
+            .bind(self.base_url.clone())
+            .bind(self.redirect_endpoint.clone())
+            .bind(self.logo_endpoint.clone())
+            .bind(self.jwt_secret.clone())
+            .bind(self.jwt_seconds_to_expire.clone())
+            .bind(claims.email.clone())
+            .fetch_one(&state.db_pool)
+            .await
+            .map_err(|error| {
+                error!("Inserting app {:?} -> {:?}", self, error);
+                AppError::NotFound
+            })?;
+
+            Ok(app)
+        } else {
+            // Update otherwise
+            let app: App = sqlx::query_as(
+                "UPDATE apps
+                SET
+                    name = $1, 
+                    description = $2, 
+                    base_url = $3, 
+                    redirect_endpoint = $4, 
+                    logo_endpoint = $5, 
+                    jwt_secret = $6, 
+                    jwt_seconds_to_expire = $7
+                WHERE
+                    app_id = $8
+                RETURNING 
+                    id,
+                    name, 
+                    description, 
+                    base_url, 
+                    redirect_endpoint, 
+                    logo_endpoint, 
+                    jwt_secret, 
+                    jwt_seconds_to_expire, 
+                    a.created_at, 
+                    owner_email",
+            )
+            .bind(self.name.clone())
+            .bind(self.description.clone())
+            .bind(self.base_url.clone())
+            .bind(self.redirect_endpoint.clone())
+            .bind(self.logo_endpoint.clone())
+            .bind(self.jwt_secret.clone())
+            .bind(self.jwt_seconds_to_expire.clone())
+            .bind(self.id)
+            .fetch_one(&state.db_pool)
+            .await
+            .map_err(|error| {
+                error!("Updating app {:?} -> {:?}", self, error);
+                AppError::NotFound
+            })?;
+
+            Ok(app)
+        }
     }
 }

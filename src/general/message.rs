@@ -1,8 +1,7 @@
 use askama::Template;
 
 /// Message Struct
-#[derive(Clone, Debug)]
-#[derive(Template)]
+#[derive(Clone, Debug, Template)]
 #[template(path = "general/message.html")]
 pub struct MessageTemplate {
     pub header: String,

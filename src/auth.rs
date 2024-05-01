@@ -33,6 +33,7 @@ use crate::AppState;
 pub enum AuthError {
     DatabaseError,
     CryptoError,
+    UserNotExisting,
     WrongCredentials,
     MissingCredentials,
     TokenCreationFailed,
@@ -46,7 +47,7 @@ pub enum AuthError {
 /// exp = expiration -> end date of the token
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IdTokenClaims {
-    pub sub: String,
+    sub: String,
     pub name: String,
     pub email: String,
     iss: String,
@@ -55,10 +56,15 @@ pub struct IdTokenClaims {
 }
 
 impl IdTokenClaims {
+    /// Get user id
+    pub fn user_id(&self) -> Uuid {
+        Uuid::parse_str(&self.sub).unwrap()
+    }
+
     /// New IdTokenClaims based on user data
     /// The token will expire after the nb of seconds passed in argument
     pub fn new(
-        user_id: String,
+        user_id: Uuid,
         user_name: String,
         user_email: String,
         seconds_before_expiration: i64,
@@ -69,7 +75,7 @@ impl IdTokenClaims {
 
         // Create token claims
         IdTokenClaims {
-            sub: user_id,
+            sub: user_id.to_string(),
             name: user_name,
             email: user_email,
             iss: String::from("Brouclean Softwares Authenticator"),
@@ -131,7 +137,7 @@ impl Display for IdTokenClaims {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "User ID: {} - Name: {} - Email: {} - Issuing company: {}",
+            "User Id: {} - Name: {} - Email: {} - Issuing company: {}",
             self.sub, self.name, self.email, self.iss
         )
     }
@@ -152,15 +158,7 @@ where
         let state = parts
             .extract_with_state::<AppState, _>(state)
             .await
-            .map_err(|error| {
-                error!("{:?}", error);
-                signin::PageTemplate::from_with_option_state(
-                    None,
-                    None,
-                    None,
-                    Some(AuthError::InvalidToken),
-                )
-            })?;
+            .unwrap();
 
         // Extract cookies
         let cookies = parts.extract::<CookieJar>().await.map_err(|error| {
@@ -205,7 +203,7 @@ pub async fn create_session_from_credentials_and_redirect(
     state: &AppState,
     email: &String,
     password: &String,
-    app_id: &String,
+    app_id: i64,
 ) -> Result<impl IntoResponse, AuthError> {
     // Check if missing credentials
     if email.is_empty() || password.is_empty() {
@@ -214,7 +212,7 @@ pub async fn create_session_from_credentials_and_redirect(
 
     // Select the user with this email
     let query_result =
-        sqlx::query("SELECT user_id, name, encrypted_password FROM users WHERE email = $1")
+        sqlx::query("SELECT id, name, encrypted_password FROM users WHERE email = $1")
             .bind(email)
             .fetch_optional(&state.db_pool)
             .await
@@ -226,7 +224,7 @@ pub async fn create_session_from_credentials_and_redirect(
     // Check if there is a user selected
     if let Some(row) = query_result {
         // Get the user data
-        let user_id = row.get::<Uuid, &str>("user_id");
+        let user_id = row.get::<Uuid, &str>("id");
         let user_name = row.get::<String, &str>("name");
         let encrypted_password = row.get::<String, &str>("encrypted_password");
 
@@ -237,7 +235,7 @@ pub async fn create_session_from_credentials_and_redirect(
         })? {
             // Generate JWT
             let jwt = IdTokenClaims::new(
-                user_id.to_string(),
+                user_id,
                 user_name,
                 email.to_string(),
                 state.authenticator_app.jwt_seconds_to_expire.clone(),
@@ -248,7 +246,9 @@ pub async fn create_session_from_credentials_and_redirect(
             Ok(create_session_into_response(
                 cookies,
                 jwt,
-                App::select_app_or_authenticator(&state, &app_id.to_string()).redirect_to(),
+                App::select_app_or_authenticator(&state, app_id)
+                    .await
+                    .redirect_to(),
             ))
         }
         // Wrong Password
@@ -258,6 +258,6 @@ pub async fn create_session_from_credentials_and_redirect(
     }
     // No user found
     else {
-        Err(AuthError::WrongCredentials)
+        Err(AuthError::UserNotExisting)
     }
 }

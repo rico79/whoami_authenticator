@@ -1,7 +1,6 @@
 -- Users
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    user_id UUID UNIQUE DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR NOT NULL,
     email VARCHAR NOT NULL UNIQUE,
     email_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
@@ -12,7 +11,6 @@ CREATE TABLE IF NOT EXISTS users (
 -- Apps
 CREATE TABLE IF NOT EXISTS apps (
     id SERIAL PRIMARY KEY,
-    app_id UUID UNIQUE DEFAULT gen_random_uuid(),
     name VARCHAR NOT NULL,
     description VARCHAR NOT NULL,
     base_url VARCHAR,
@@ -21,7 +19,5 @@ CREATE TABLE IF NOT EXISTS apps (
     jwt_secret VARCHAR,
     jwt_seconds_to_expire INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    owner_id INTEGER REFERENCES users ON DELETE SET NULL
+    owner_id UUID REFERENCES users ON DELETE SET NULL
 );
-
--- Sessions

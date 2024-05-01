@@ -22,8 +22,8 @@ pub struct PageTemplate {
 
 impl PageTemplate {
     /// Generate page from data
-    pub fn from_with_option_state(
-        state: Option<AppState>,
+    pub fn from(
+        state: &AppState,
         email: Option<String>,
         app: Option<App>,
         error: Option<AuthError>,
@@ -32,6 +32,9 @@ impl PageTemplate {
         let error_message = match error {
             None => "".to_owned(),
             Some(AuthError::InvalidToken) => "".to_owned(),
+            Some(AuthError::UserNotExisting) => {
+                "Utilisateur inconnu".to_owned()
+            }
             Some(AuthError::WrongCredentials) => {
                 "Les données de connexion sont incorrectes".to_owned()
             }
@@ -41,28 +44,11 @@ impl PageTemplate {
             _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
         };
 
-        match state {
-            Some(state) => PageTemplate {
-                error: error_message,
-                email: email.unwrap_or("".to_owned()),
-                app: app.unwrap_or(state.authenticator_app),
-            },
-            None => PageTemplate {
-                error: error_message,
-                email: email.unwrap_or("".to_owned()),
-                app: app.unwrap_or_default(),
-            },
+        PageTemplate {
+            error: error_message,
+            email: email.unwrap_or("".to_owned()),
+            app: app.unwrap_or(state.authenticator_app.clone()),
         }
-    }
-
-    /// Generate page from data
-    pub fn from(
-        state: &AppState,
-        email: Option<String>,
-        app: Option<App>,
-        error: Option<AuthError>,
-    ) -> Self {
-        Self::from_with_option_state(Some(state.clone()), email, app, error)
     }
 
     /// Generate page from query params
@@ -76,7 +62,7 @@ impl PageTemplate {
 #[derive(Deserialize)]
 pub struct QueryParams {
     email: Option<String>,
-    app_id: Option<String>,
+    app_id: Option<i64>,
     error: Option<AuthError>,
 }
 
@@ -88,8 +74,11 @@ pub async fn get(
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     // Get app to connect to
-    let app =
-        App::select_app_or_authenticator(&state, &params.app_id.clone().unwrap_or("".to_owned()));
+    let app = App::select_app_or_authenticator(
+        &state,
+        params.app_id.unwrap_or(state.authenticator_app.id),
+    )
+    .await;
 
     // Check if already connected
     if IdTokenClaims::get_from_cookies(&state, &cookies).is_ok() {
@@ -104,7 +93,7 @@ pub async fn get(
 #[derive(Deserialize)]
 pub struct SigninForm {
     email: String,
-    app_id: String,
+    app_id: i64,
     password: String,
 }
 
@@ -116,20 +105,17 @@ pub async fn post(
     State(state): State<AppState>,
     Form(form): Form<SigninForm>,
 ) -> Result<impl IntoResponse, PageTemplate> {
+    // Get App
+    let app = App::select_app_or_authenticator(&state, form.app_id).await;
+
+    // Create session
     create_session_from_credentials_and_redirect(
         cookies,
         &state,
         &form.email,
         &form.password,
-        &form.app_id,
+        form.app_id,
     )
     .await
-    .map_err(|error| {
-        PageTemplate::from(
-            &state,
-            Some(form.email),
-            Some(App::select_app_or_authenticator(&state, &form.app_id)),
-            Some(error),
-        )
-    })
+    .map_err(|error| PageTemplate::from(&state, Some(form.email), Some(app), Some(error)))
 }
