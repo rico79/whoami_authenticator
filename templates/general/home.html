@@ -11,11 +11,17 @@
         </div>
     </h2>
 
-    <h4 class="ui dividing header">Les apps que j'utilise</h4>
+    <div class="two column doubling ui grid">
+        <div class="column">
+            <h4 class="ui dividing header">Les apps que j'utilise</h4>
+        </div>
 
-    <h4 class="ui dividing header">Les apps dont je suis le propriétaire</h4>
-    <div class="ui container">
-        {{ own_apps|escape("none") }}
+        <div class="column">
+            <h4 class="ui dividing header">Les apps dont je suis le propriétaire</h4>
+            <div class="ui container">
+                {{ own_apps|escape("none") }}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

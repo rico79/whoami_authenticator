@@ -50,9 +50,9 @@
             </div>
             <div class="fields">
                 <div class="five wide field">
-                    <label>Url de base</label>
+                    <label>URL de base</label>
                     <div class="ui left icon input">
-                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="base_url"
+                        <input class="input" {{ Self::print_read_only(self) }} type="url" name="base_url"
                             value="{{ app.base_url }}" placeholder="ex: https://www.mozilla.org" />
                         <i class="globe icon"></i>
                     </div>
@@ -69,7 +69,7 @@
                 </div>
 
                 <div class="two wide field">
-                    <a href="{{ app.base_url }}">
+                    <a href="{{ app.base_url }}" target="_blank">
                         <img class="ui tiny avatar image" src="{{ app.logo_url() }}">
                     </a>
                 </div>
@@ -83,7 +83,7 @@
                     <label>Chemin relatif de redirection suite à l'authentification</label>
                     <div class="ui left icon input">
                         <input class="input" {{ Self::print_read_only(self) }} type="text" name="redirect_endpoint"
-                            value="{{ app.redirect_endpoint }}" placeholder="/authorize" />
+                            value="{{ app.redirect_endpoint }}" placeholder="/authenticate" />
                         <i class="sign-in icon"></i>
                     </div>
                 </div>
@@ -91,7 +91,7 @@
                 <div class="six wide field">
                     <label>Durée de validité des tokens d'identification (en secondes)</label>
                     <div class="ui left icon input">
-                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="jwt_seconds_to_expire"
+                        <input class="input" {{ Self::print_read_only(self) }} type="number" name="jwt_seconds_to_expire"
                             value="{{ app.jwt_seconds_to_expire }}" placeholder="60=1min, 3600=1h, 86400=1j..." />
                         <i class="hourglass half icon"></i>
                     </div>
@@ -135,6 +135,22 @@
                     {
                         type: 'empty',
                         prompt: 'Veuillez rentrer une description succincte de l\'app'
+                    }
+                ]
+            },
+            base_url: {
+                rules: [
+                    {
+                        type: 'url',
+                        prompt: 'Veuillez rentrer une URL valide'
+                    }
+                ]
+            },
+            jwt_seconds_to_expire: {
+                rules: [
+                    {
+                        type: 'integer',
+                        prompt: 'Veuillez rentrer un nombre entier'
                     }
                 ]
             },
