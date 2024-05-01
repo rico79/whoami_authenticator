@@ -79,8 +79,8 @@ async fn http_server(
 
     // Define router with state for http server
     let router = Router::new()
-        .route("/", get(general::home::get))
-        .route("/welcome", get(general::welcome::get))
+        .route("/", get(general::public::get))
+        .route("/home", get(general::home::get))
         .route("/confirm", get(users::confirm::get))
         .route("/signup", get(auth::signup::get).post(auth::signup::post))
         .route("/signin", get(auth::signin::get).post(auth::signin::post))

@@ -1,20 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="ui main text container">
-    <h1 class="ui header">
-        Brouclean Softwares Authenticator
-        <div class="sub header">
-            Connectez vous et profitez de nos Apps!
-        </div>
-    </h1>
-    <a class="ui button" href="signup">
-        <i class="signup arrow icon"></i>
-        S'inscrire
-    </a>
-    <a class="ui button" href="signin">
-        <i class="sign-in arrow icon"></i>
-        Se connecter
-    </a>
+{{ navbar|escape("none") }}
+
+<div class="ui main container">
+    <h2 class="ui center aligned header">Bienvenue!</h2>
+
+    <h4 class="ui dividing header">Les apps que j'utilise</h4>
+
+    <h4 class="ui dividing header">Les apps dont je suis le propriétaire</h4>
+    <div class="ui container">
+        {{ own_apps|escape("none") }}
+    </div>
 </div>
 {% endblock %}

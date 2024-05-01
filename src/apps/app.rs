@@ -7,7 +7,10 @@ use axum::{
 use serde::Deserialize;
 
 use crate::{
-    auth::IdTokenClaims, general::navbar::NavBarTemplate, utils::date_time::DateTime, AppState,
+    auth::IdTokenClaims,
+    general::{go_back::GoBackTemplate, navbar::NavBarTemplate},
+    utils::date_time::DateTime,
+    AppState,
 };
 
 use super::App;
@@ -20,7 +23,8 @@ pub struct PageTemplate {
     navbar: NavBarTemplate,
     app: Option<App>,
     read_only: bool,
-    back_url: String,
+    owned: bool,
+    go_back: GoBackTemplate,
 }
 
 impl PageTemplate {
@@ -32,22 +36,31 @@ impl PageTemplate {
             "".to_owned()
         }
     }
+
     /// Init page from App
-    fn from(
-        claims: &IdTokenClaims,
-        app: Option<App>,
-        back_url: String,
-    ) -> Result<Self, Self> {
-        Ok(PageTemplate {
-            navbar: NavBarTemplate {
-                claims: Some(claims.clone()),
-            },
-            app: app.clone(),
-            read_only: !app
-                .unwrap_or(App::new(&claims.user_id()))
-                .can_be_updated_by(claims.user_id()),
-            back_url,
-        })
+    fn from(claims: &IdTokenClaims, app: Option<App>, back_url: String) -> Result<Self, Self> {
+        match app {
+            // Existing app
+            Some(app) => Ok(PageTemplate {
+                navbar: NavBarTemplate {
+                    claims: Some(claims.clone()),
+                },
+                app: Some(app.clone()),
+                read_only: !app.can_be_updated_by(claims.user_id()),
+                owned: app.is_owned_by(claims.user_id()),
+                go_back: GoBackTemplate { back_url },
+            }),
+            // No app means new app to create
+            None => Ok(PageTemplate {
+                navbar: NavBarTemplate {
+                    claims: Some(claims.clone()),
+                },
+                app: app.clone(),
+                read_only: !App::new(&claims.user_id()).can_be_updated_by(claims.user_id()),
+                owned: true,
+                go_back: GoBackTemplate { back_url },
+            }),
+        }
     }
 
     /// Init page from app_id
@@ -64,6 +77,7 @@ impl PageTemplate {
                 App::select_from_app_id(&state, app_id).await.ok(),
                 back_url,
             ),
+
             // No id means new app to create
             None => Err(PageTemplate {
                 navbar: NavBarTemplate {
@@ -71,7 +85,8 @@ impl PageTemplate {
                 },
                 app: Some(App::new(&claims.user_id())),
                 read_only: false,
-                back_url,
+                owned: true,
+                go_back: GoBackTemplate { back_url },
             }),
         }
     }

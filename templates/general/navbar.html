@@ -4,14 +4,14 @@
             <img src="assets/images/logo.png">
         </div>
 
-        <a class="header item" href="/">Authenticator</a>
-
         {% if let Some(claims) = claims %}
+        <a class="header item" href="/home">Authenticator</a>
+
         <div class="ui right dropdown item">
             <div class="text">{{ claims.name }}</div>
             <i class="dropdown icon"></i>
             <div class="menu">
-                <a class="item" href="/welcome">
+                <a class="item" href="/home">
                     <i class="home icon"></i>
                     Bienvenue
                 </a>
@@ -26,8 +26,10 @@
             </div>
         </div>
         {% else %}
+        <a class="header item" href="/">Authenticator</a>
+        
         <div class="right menu">
-            <a class="item" href="/welcome">
+            <a class="item" href="/home">
                 <i class="sign-in icon"></i>
                 Se connecter
             </a>

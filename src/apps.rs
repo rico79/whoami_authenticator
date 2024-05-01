@@ -89,7 +89,7 @@ impl App {
             name: "Authenticator".to_owned(),
             description: "Gère la connexion de vos utilisateurs pour vos apps".to_owned(),
             base_url,
-            redirect_endpoint: "/welcome".to_owned(),
+            redirect_endpoint: "/home".to_owned(),
             logo_endpoint: "/assets/images/logo.png".to_owned(),
             jwt_secret,
             jwt_seconds_to_expire,
@@ -106,15 +106,20 @@ impl App {
         self.id == 0
     }
 
+    /// Check if user is owner
+    pub fn is_owned_by(&self, user_id: Uuid) -> bool {
+        match self.owner_id.clone() {
+            Some(owner_id) => owner_id == user_id.clone(),
+            None => false,
+        }
+    }
+
     /// Check if this user email can update the app
     /// Can update if owner
     /// NOTE that authenticator app can not be updated
     pub fn can_be_updated_by(&self, user_id: Uuid) -> bool {
         !self.is_authenticator_app()
-            && match self.owner_id.clone() {
-                Some(owner_id) => owner_id == user_id.clone(),
-                None => false,
-            }
+            && self.is_owned_by(user_id)
     }
 
     /// Get app from id

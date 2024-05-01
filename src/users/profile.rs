@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{
     auth::{create_session_into_response, IdTokenClaims},
-    general::{message::MessageTemplate, navbar::NavBarTemplate},
+    general::{go_back::GoBackTemplate, message::MessageTemplate, navbar::NavBarTemplate},
     AppState,
 };
 
@@ -17,6 +17,7 @@ use super::{confirm::EmailConfirmation, User};
 #[template(path = "users/profile.html")]
 pub struct PageTemplate {
     navbar: NavBarTemplate,
+    go_back: GoBackTemplate,
     user: Option<User>,
     confirm_send_url: String,
     password_message: MessageTemplate,
@@ -49,6 +50,7 @@ impl PageTemplate {
             navbar: NavBarTemplate {
                 claims: Some(claims),
             },
+            go_back: GoBackTemplate { back_url: "/home".to_owned() },
             user: user,
             confirm_send_url,
             password_message,

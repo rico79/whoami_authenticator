@@ -29,33 +29,92 @@
 
             <h4 class="ui dividing header">Informations générales</h4>
 
-            <div class="two column doubling ui grid">
-                <div class="column">
-                    <div class="field">
-                        <label>Nom</label>
+            <div class="fields">
+                <div class="four wide field">
+                    <label>Nom</label>
+                    <div class="ui left icon input">
                         <input class="input" {{ Self::print_read_only(self) }} type="text" name="name"
                             value="{{ app.name }}" placeholder="ex: Firefox" />
+                        <i class="star icon"></i>
                     </div>
+                </div>
 
-                    <div class="field">
-                        <label>Description</label>
-                        <textarea rows="2" {{ Self::print_read_only(self) }} name="description"
-                            placeholder="ex: Best browser ever...">{{ app.description }}</textarea>
+                <div class="twelve wide field">
+                    <label>Description</label>
+                    <div class="ui left icon input">
+                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="description"
+                            value="{{ app.description }}" placeholder="ex: Let you browse the internet..." />
+                        <i class="info icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="fields">
+                <div class="five wide field">
+                    <label>Url de base</label>
+                    <div class="ui left icon input">
+                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="base_url"
+                            value="{{ app.base_url }}" placeholder="ex: https://www.mozilla.org" />
+                        <i class="globe icon"></i>
+                    </div>
+                </div>
+
+                <div class="nine wide field">
+                    <label>Chemin relatif du logo</label>
+                    <div class="ui left icon input">
+                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="logo_endpoint"
+                            value="{{ app.logo_endpoint }}"
+                            placeholder="ex: /media/protocol/img/logos/firefox/browser/logo.eb1324e44442.svg" />
+                        <i class="image icon"></i>
+                    </div>
+                </div>
+
+                <div class="two wide field">
+                    <a href="{{ app.base_url }}">
+                        <img class="ui tiny avatar image" src="{{ app.logo_url() }}">
+                    </a>
+                </div>
+            </div>
+
+            {% if owned %}
+            <h4 class="ui dividing header">Gestion interne</h4>
+
+            <div class="fields">
+                <div class="ten wide field">
+                    <label>Chemin relatif de redirection suite à l'authentification</label>
+                    <div class="ui left icon input">
+                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="redirect_endpoint"
+                            value="{{ app.redirect_endpoint }}" placeholder="/authorize" />
+                        <i class="sign-in icon"></i>
+                    </div>
+                </div>
+
+                <div class="six wide field">
+                    <label>Durée de validité des tokens d'identification (en secondes)</label>
+                    <div class="ui left icon input">
+                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="jwt_seconds_to_expire"
+                            value="{{ app.jwt_seconds_to_expire }}" placeholder="60=1min, 3600=1h, 86400=1j..." />
+                        <i class="hourglass half icon"></i>
                     </div>
                 </div>
             </div>
 
+            <div class="field">
+                <label>Chaine secrète de caractères pour générer les tokens d'identification</label>
+                <div class="ui left icon input">
+                    <input class="input" {{ Self::print_read_only(self) }} type="text" name="jwt_secret"
+                        value="{{ app.jwt_secret }}" placeholder="KB8DB1+893KwpK*u6m5dy=6g*=,5M:WJ..." />
+                    <i class="key icon"></i>
+                </div>
+            </div>
+            {% endif %}
+
             {% if !read_only %}
-            <button class="ui primary button">
+            <button class="ui primary button" tabindex="0">
                 Enregistrer
             </button>
             {% endif %}
 
-            <input type="hidden" name="back_url" value="{{ back_url }}" />
-            <a class="ui button" href="{{ back_url }}">
-                <i class="left arrow icon"></i>
-                Retour
-            </a>
+            {{ go_back|escape("none") }}
         </form>
     </div>
 </div>
