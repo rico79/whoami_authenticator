@@ -46,10 +46,7 @@ impl fmt::Display for DateTime {
         write!(
             f,
             "{}",
-            chrono::DateTime::from_timestamp(self.timestamp, 0)
-                .unwrap_or_default()
-                .with_timezone(&chrono::Local)
-                .format("%d/%m/%Y à %H:%M")
+            self.format_to_string("%d/%m/%Y à %H:%M")
         )
     }
 }

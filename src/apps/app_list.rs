@@ -8,4 +8,5 @@ use super::App;
 #[template(path = "apps/app_list.html")]
 pub struct AppListTemplate {
     pub apps: Vec<App>,
+    pub can_add: bool,
 }

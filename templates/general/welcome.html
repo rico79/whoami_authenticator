@@ -9,14 +9,8 @@
     <h4 class="ui dividing header">Les apps que j'utilise</h4>
 
     <h4 class="ui dividing header">Les apps dont je suis le propriétaire</h4>
-    <div id="own_apps_div" class="ui container">
-        {{ own_apps|escape("none") }}
-    </div>
     <div class="ui container">
-        <a class="ui button" href="app">
-            <i class="plus icon"></i>
-            Ajouter
-        </a>
+        {{ own_apps|escape("none") }}
     </div>
 </div>
 {% endblock %}
