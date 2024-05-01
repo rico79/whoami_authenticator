@@ -28,6 +28,7 @@ pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl I
         own_apps: AppListTemplate {
             apps: App::select_own_apps(&state, &claims).await.unwrap(),
             can_add: true,
+            back_url: "/welcome".to_owned(),
         },
     }
 }

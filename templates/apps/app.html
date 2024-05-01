@@ -3,9 +3,9 @@
 {% block content %}
 {{ navbar|escape("none") }}
 
+{% if let Some(app) = app %}
 <div class="ui main container">
 
-    {% if let Some(app) = app %}
     {% if app.name.len() > 0 %}
     <h2 class="ui center aligned header">
         {{ app.name }}
@@ -22,19 +22,26 @@
     </h2>
     {% endif %}
 
-    <h4 class="ui dividing header">Informations générales</h4>
-
     <div class="ui container">
         <form class="ui form" method="POST" action="/app">
             <input type="hidden" name="id" value="{{ app.id }}" />
             <div class="ui error message"></div>
 
-            <div class="field">
-                <label>Nom</label>
-                <div class="ui left icon input">
-                    <input class="input" readonly="{{ read_only }}" type="text" name="name" value="{{ app.name }}"
-                        placeholder="ex: Firefox" />
-                    <i class="star icon"></i>
+            <h4 class="ui dividing header">Informations générales</h4>
+
+            <div class="two column doubling ui grid">
+                <div class="column">
+                    <div class="field">
+                        <label>Nom</label>
+                        <input class="input" {{ Self::print_read_only(self) }} type="text" name="name"
+                            value="{{ app.name }}" placeholder="ex: Firefox" />
+                    </div>
+
+                    <div class="field">
+                        <label>Description</label>
+                        <textarea rows="2" {{ Self::print_read_only(self) }} name="description"
+                            placeholder="ex: Best browser ever...">{{ app.description }}</textarea>
+                    </div>
                 </div>
             </div>
 
@@ -43,16 +50,47 @@
                 Enregistrer
             </button>
             {% endif %}
+
+            <input type="hidden" name="back_url" value="{{ back_url }}" />
+            <a class="ui button" href="{{ back_url }}">
+                <i class="left arrow icon"></i>
+                Retour
+            </a>
         </form>
     </div>
+</div>
 
-    {% else %}
+<script>
+    $('.ui.form').form({
+        fields: {
+            name: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez rentrer le nom de l\'app'
+                    }
+                ]
+            },
+            description: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez rentrer une description succincte de l\'app'
+                    }
+                ]
+            },
+        }
+    });
+</script>
+
+{% else %}
+<div class="ui main container">
     <div class="ui negative message">
         <div class="header">
             Erreur inattendue
         </div>
         Veuillez réessayer plus tard
     </div>
-    {% endif %}
 </div>
+{% endif %}
 {% endblock %}

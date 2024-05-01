@@ -20,17 +20,33 @@ pub struct PageTemplate {
     navbar: NavBarTemplate,
     app: Option<App>,
     read_only: bool,
+    back_url: String,
 }
 
 impl PageTemplate {
+    /// print read only
+    pub fn print_read_only(&self) -> String {
+        if self.read_only {
+            "readonly".to_owned()
+        } else {
+            "".to_owned()
+        }
+    }
     /// Init page from App
-    fn from(claims: &IdTokenClaims, app: Option<App>) -> Result<Self, Self> {
+    fn from(
+        claims: &IdTokenClaims,
+        app: Option<App>,
+        back_url: String,
+    ) -> Result<Self, Self> {
         Ok(PageTemplate {
             navbar: NavBarTemplate {
                 claims: Some(claims.clone()),
             },
             app: app.clone(),
-            read_only: !app.unwrap_or(App::new()).can_be_updated_by(claims.user_id()),
+            read_only: !app
+                .unwrap_or(App::new(&claims.user_id()))
+                .can_be_updated_by(claims.user_id()),
+            back_url,
         })
     }
 
@@ -38,18 +54,24 @@ impl PageTemplate {
     async fn from_id(
         state: &AppState,
         claims: &IdTokenClaims,
-        app_id: Option<i64>,
+        app_id: Option<i32>,
+        back_url: String,
     ) -> Result<Self, Self> {
         match app_id {
             // Get app from id
-            Some(app_id) => Self::from(claims, App::select_from_app_id(&state, app_id).await.ok()),
+            Some(app_id) => Self::from(
+                claims,
+                App::select_from_app_id(&state, app_id).await.ok(),
+                back_url,
+            ),
             // No id means new app to create
             None => Err(PageTemplate {
                 navbar: NavBarTemplate {
                     claims: Some(claims.clone()),
                 },
-                app: Some(App::new()),
+                app: Some(App::new(&claims.user_id())),
                 read_only: false,
+                back_url,
             }),
         }
     }
@@ -59,7 +81,8 @@ impl PageTemplate {
 /// HTTP parameters used for the get Handler
 #[derive(Deserialize)]
 pub struct QueryParams {
-    id: Option<i64>,
+    id: Option<i32>,
+    back_url: String,
 }
 
 /// Get handler
@@ -69,21 +92,22 @@ pub async fn get(
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    PageTemplate::from_id(&state, &claims, params.id).await
+    PageTemplate::from_id(&state, &claims, params.id, params.back_url).await
 }
 
 /// Post form
 /// Data expected from the form
 #[derive(Deserialize)]
 pub struct PostForm {
-    id: i64,
+    id: i32,
     name: Option<String>,
     description: Option<String>,
     base_url: Option<String>,
     redirect_endpoint: Option<String>,
     logo_endpoint: Option<String>,
     jwt_secret: Option<String>,
-    jwt_seconds_to_expire: Option<i64>,
+    jwt_seconds_to_expire: Option<i32>,
+    back_url: String,
 }
 
 /// Post handler
@@ -112,7 +136,8 @@ pub async fn post(
             .save(&state, &claims)
             .await
             .ok(),
+            form.back_url,
         ),
-        None => PageTemplate::from_id(&state, &claims, Some(form.id)).await,
+        None => PageTemplate::from_id(&state, &claims, Some(form.id), form.back_url).await,
     }
 }

@@ -62,7 +62,7 @@ impl PageTemplate {
 #[derive(Deserialize)]
 pub struct QueryParams {
     email: Option<String>,
-    app_id: Option<i64>,
+    app_id: Option<i32>,
     error: Option<AuthError>,
 }
 
@@ -93,7 +93,7 @@ pub async fn get(
 #[derive(Deserialize)]
 pub struct SigninForm {
     email: String,
-    app_id: i64,
+    app_id: i32,
     password: String,
 }
 

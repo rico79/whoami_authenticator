@@ -69,7 +69,7 @@ impl PageTemplate {
 pub struct QueryParams {
     name: Option<String>,
     email: Option<String>,
-    app_id: Option<i64>,
+    app_id: Option<i32>,
     error: Option<UserError>,
 }
 
@@ -97,7 +97,7 @@ pub struct SignupForm {
     email: String,
     password: String,
     confirm_password: String,
-    app_id: i64,
+    app_id: i32,
 }
 
 /// Post handler

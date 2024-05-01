@@ -9,4 +9,5 @@ use super::App;
 pub struct AppListTemplate {
     pub apps: Vec<App>,
     pub can_add: bool,
+    pub back_url: String,
 }

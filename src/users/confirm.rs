@@ -164,7 +164,7 @@ impl PageTemplate {
 #[derive(Deserialize)]
 pub struct QueryParams {
     action: Action,
-    app_id: i64,
+    app_id: i32,
     token: Option<String>,
     user_id: Option<String>,
 }

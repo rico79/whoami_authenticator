@@ -67,11 +67,11 @@ impl IdTokenClaims {
         user_id: Uuid,
         user_name: String,
         user_email: String,
-        seconds_before_expiration: i64,
+        seconds_before_expiration: i32,
     ) -> Self {
         // Generate issued at and expiration dates (X seconds after)
         let issued_at = Utc::now().timestamp();
-        let expiration = issued_at + seconds_before_expiration;
+        let expiration = issued_at + i64::from(seconds_before_expiration);
 
         // Create token claims
         IdTokenClaims {
@@ -203,7 +203,7 @@ pub async fn create_session_from_credentials_and_redirect(
     state: &AppState,
     email: &String,
     password: &String,
-    app_id: i64,
+    app_id: i32,
 ) -> Result<impl IntoResponse, AuthError> {
     // Check if missing credentials
     if email.is_empty() || password.is_empty() {
