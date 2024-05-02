@@ -5,6 +5,7 @@
 
 {% if let Some(app) = app %}
 <div class="ui main container">
+    <img class="ui centered tiny image" src="{{ app.logo_url() }}">
 
     {% if app.name.len() > 0 %}
     <h2 class="ui center aligned header">
@@ -48,8 +49,8 @@
                     </div>
                 </div>
             </div>
-            <div class="fields">
-                <div class="five wide field">
+            <div class="two fields">
+                <div class="field">
                     <label>URL de base</label>
                     <div class="ui left icon input">
                         <input class="input" {{ Self::print_read_only(self) }} type="url" name="base_url"
@@ -58,7 +59,7 @@
                     </div>
                 </div>
 
-                <div class="nine wide field">
+                <div class="field">
                     <label>Chemin relatif du logo</label>
                     <div class="ui left icon input">
                         <input class="input" {{ Self::print_read_only(self) }} type="text" name="logo_endpoint"
@@ -66,12 +67,6 @@
                             placeholder="ex: /media/protocol/img/logos/firefox/browser/logo.eb1324e44442.svg" />
                         <i class="image icon"></i>
                     </div>
-                </div>
-
-                <div class="two wide field">
-                    <a href="{{ app.base_url }}" target="_blank">
-                        <img class="ui tiny avatar image" src="{{ app.logo_url() }}">
-                    </a>
                 </div>
             </div>
 

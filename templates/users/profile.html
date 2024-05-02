@@ -6,6 +6,8 @@
 <div class="ui main container">
 
     {% if let Some(profile) = user %}
+    <img class="ui centered circular tiny image" src="{{ profile.avatar_url }}">
+
     <h2 class="ui center aligned header">
         Mon profil
         <div class="sub header">
@@ -38,9 +40,18 @@
                         <div class="field">
                             <label>Date de Naissance</label>
                             <div class="ui left icon input">
-                                <input class="input" type="date" name="birthday" value="{{ profile.birthday }}"/>
+                                <input class="input" type="date" name="birthday" value="{{ profile.birthday }}" />
                                 <i class="calendar icon"></i>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>URL de l'avatar</label>
+                        <div class="ui left icon input">
+                            <input class="input" type="url" name="avatar_url" value="{{ profile.avatar_url }}"
+                                placeholder="ex: https//..." />
+                            <i class="image icon"></i>
                         </div>
                     </div>
 
@@ -68,15 +79,6 @@
                         </a>
                     </div>
                     {% endif %}
-
-                    <div class="field">
-                        <label>URL de l'avatar</label>
-                        <div class="ui left icon input">
-                            <input class="input" type="url" name="avatar_url" value="{{ profile.avatar_url }}"
-                                placeholder="ex: https//..." />
-                            <i class="image icon"></i>
-                        </div>
-                    </div>
 
                     <button class="ui primary button">
                         Modifier
