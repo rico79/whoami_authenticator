@@ -10,7 +10,7 @@
     <h2 class="ui center aligned header">
         {{ app.name }}
         <div class="sub header">
-            Créée le {{ app.created_at }}
+            Créée le {{ app.created_at.format("%d/%m/%Y à %H:%M") }}
         </div>
     </h2>
     {% else %}
@@ -75,7 +75,7 @@
                 </div>
             </div>
 
-            {% if owned %}
+            {% if !read_only %}
             <h4 class="ui dividing header">Gestion interne</h4>
 
             <div class="fields">
@@ -135,22 +135,6 @@
                     {
                         type: 'empty',
                         prompt: 'Veuillez rentrer une description succincte de l\'app'
-                    }
-                ]
-            },
-            base_url: {
-                rules: [
-                    {
-                        type: 'url',
-                        prompt: 'Veuillez rentrer une URL valide'
-                    }
-                ]
-            },
-            jwt_seconds_to_expire: {
-                rules: [
-                    {
-                        type: 'integer',
-                        prompt: 'Veuillez rentrer un nombre entier'
                     }
                 ]
             },

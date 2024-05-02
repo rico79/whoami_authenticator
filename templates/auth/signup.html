@@ -36,11 +36,21 @@
                 <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
             </div>
 
-            <div class="field">
-                <label>Nom</label>
-                <div class="ui left icon input">
-                    <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
-                    <i class="user icon"></i>
+            <div class="two fields">
+                <div class="field">
+                    <label>Nom</label>
+                    <div class="ui left icon input">
+                        <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
+                        <i class="user icon"></i>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Date de Naissance</label>
+                    <div class="ui left icon input">
+                        <input class="input" type="date" name="birthday" value="{{ birthday }}" />
+                        <i class="calendar icon"></i>
+                    </div>
                 </div>
             </div>
 
@@ -98,6 +108,14 @@
                     {
                         type: 'empty',
                         prompt: 'Veuillez rentrer votre nom'
+                    }
+                ]
+            },
+            birthday: {
+                rules: [
+                    {
+                        type: 'empty',
+                        prompt: 'Veuillez rentrer votre date de naissance'
                     }
                 ]
             },

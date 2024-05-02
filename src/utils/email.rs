@@ -14,7 +14,11 @@ impl AppMailer {
     /// Create the AppMailer struct from secrets informations
     pub fn new(secrets: &SecretStore) -> AppMailer {
         let mail_smtp = secrets.get("MAIL_SMTP").unwrap();
-        let mail_from = secrets.get("MAIL_FROM").unwrap();
+        let mail_from = format!(
+            "{} <{}>",
+            secrets.get("APP_NAME").unwrap(),
+            secrets.get("MAIL_USER_NAME").unwrap()
+        );
         let mail_user_name = secrets.get("MAIL_USER_NAME").unwrap();
         let mail_password = secrets.get("MAIL_PASSWORD").unwrap();
 

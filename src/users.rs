@@ -5,17 +5,13 @@ use std::fmt;
 
 use serde::Deserialize;
 use sqlx::{
-    postgres::PgRow,
-    types::{time::OffsetDateTime, Uuid},
-    FromRow, PgPool, Row,
+    types::chrono::{DateTime, Local, NaiveDate},
+    types::Uuid,
+    FromRow,
 };
 use tracing::log::error;
 
-use crate::{
-    auth::IdTokenClaims,
-    utils::{crypto::encrypt_text, date_time::DateTime},
-    AppState,
-};
+use crate::{auth::IdTokenClaims, utils::crypto::encrypt_text, AppState};
 
 /// Error types
 #[derive(Debug, Deserialize)]
@@ -26,6 +22,7 @@ pub enum UserError {
     PasswordsDoNotMatch,
     AlreadyExisting,
     InvalidId,
+    InvalidBirthday,
     NotFound,
     EmailConfirmationFailed,
 }
@@ -44,6 +41,7 @@ impl fmt::Display for UserError {
             UserError::InvalidId => "L'identifiant de l'utilisateur est invalide",
             UserError::NotFound => "L'utilisateur est introuvable",
             UserError::EmailConfirmationFailed => "La confirmation de l'email a échouée",
+            UserError::InvalidBirthday => "La date de naissance est incorrecte",
         };
 
         write!(f, "{}", message)
@@ -51,26 +49,15 @@ impl fmt::Display for UserError {
 }
 
 /// User struct
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, FromRow)]
 pub struct User {
     pub id: Uuid,
     pub name: String,
+    pub birthday: NaiveDate,
+    pub avatar_url: String,
     pub email: String,
     pub email_confirmed: bool,
-    pub created_at: DateTime,
-}
-
-/// To get User from database
-impl FromRow<'_, PgRow> for User {
-    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
-        Ok(Self {
-            id: row.try_get("id")?,
-            name: row.try_get("name")?,
-            email: row.try_get("email")?,
-            email_confirmed: row.try_get("email_confirmed")?,
-            created_at: DateTime::from(row.try_get::<OffsetDateTime, &str>("created_at")?),
-        })
-    }
+    pub created_at: DateTime<Local>,
 }
 
 impl User {
@@ -83,6 +70,8 @@ impl User {
             "SELECT 
                     id,
                     name, 
+                    birthday,
+                    avatar_url,
                     email, 
                     email_confirmed, 
                     created_at 
@@ -102,37 +91,6 @@ impl User {
         Ok(user)
     }
 
-    /// Get user data
-    /// Get user email
-    /// Return the User
-    pub async fn select_from_email(
-        db_pool: &PgPool,
-        user_mail: &String,
-    ) -> Result<Self, UserError> {
-        // Get user from database
-        let user: User = sqlx::query_as(
-            "SELECT
-                    id,
-                    name, 
-                    email, 
-                    email_confirmed, 
-                    created_at 
-                FROM 
-                    users 
-                WHERE 
-                    email = $1",
-        )
-        .bind(user_mail)
-        .fetch_one(db_pool)
-        .await
-        .map_err(|error| {
-            error!("Selecting user from email {} -> {:?}", user_mail, error);
-            UserError::NotFound
-        })?;
-
-        Ok(user)
-    }
-
     /// Update user profile
     /// Get user id
     /// Return the User
@@ -140,25 +98,42 @@ impl User {
         state: &AppState,
         user_id: &Uuid,
         name: &String,
+        birthday: &String,
+        avatar_url: &String,
         email: &String,
     ) -> Result<Self, UserError> {
+        // Check if birthday is ok
+        let birthday_date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|error| {
+            error!("Updating user {} -> {:?}", name, error);
+            UserError::InvalidBirthday
+        })?;
+        if birthday_date > Local::now().date_naive() {
+            return Err(UserError::InvalidBirthday);
+        }
+
         // Update ang get user from database
         let user: User = sqlx::query_as(
             "UPDATE users 
                 SET 
                     name = $1, 
-                    email = $2, 
-                    email_confirmed = (email=$2 AND email_confirmed) 
+                    birthday = $2,
+                    avatar_url = $3,
+                    email = $4, 
+                    email_confirmed = (email=$4 AND email_confirmed) 
                 WHERE 
-                    id = $3 
+                    id = $5 
                 RETURNING 
                     id,
                     name, 
+                    birthday,
+                    avatar_url,
                     email, 
                     email_confirmed, 
                     created_at",
         )
         .bind(name)
+        .bind(birthday_date)
+        .bind(avatar_url)
         .bind(email)
         .bind(user_id)
         .fetch_one(&state.db_pool)
@@ -206,6 +181,8 @@ impl User {
                 RETURNING 
                     id,
                     name, 
+                    birthday,
+                    avatar_url,
                     email, 
                     email_confirmed, 
                     created_at",
@@ -267,19 +244,33 @@ impl User {
 
     /// Create User from signup
     /// Use the cookies and the App state
-    /// Get name, email, password and password confirmation
+    /// Get name, birthday, email, password and password confirmation
     /// Return user_id
     pub async fn create(
         state: &AppState,
         name: &String,
+        birthday: &String,
         email: &String,
         password: &String,
         confirm_password: &String,
     ) -> Result<Self, UserError> {
         // Check if missing data
-        if name.is_empty() || email.is_empty() || password.is_empty() || confirm_password.is_empty()
+        if name.is_empty()
+            || birthday.is_empty()
+            || email.is_empty()
+            || password.is_empty()
+            || confirm_password.is_empty()
         {
             return Err(UserError::MissingInformation);
+        }
+
+        // Check if birthday is ok
+        let birthday_date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|error| {
+            error!("Creating user {} -> {:?}", name, error);
+            UserError::InvalidBirthday
+        })?;
+        if birthday_date > Local::now().date_naive() {
+            return Err(UserError::InvalidBirthday);
         }
 
         // Check if password does not match confirmation
@@ -297,17 +288,22 @@ impl User {
         let user: User = sqlx::query_as(
             "INSERT INTO users (
                 name, 
-                email, 
-                encrypted_password) 
-            VALUES ($1, $2, $3) 
+                birthday, 
+                email,
+                encrypted_password,
+                avatar_url) 
+            VALUES ($1, $2, $3, $4, '') 
             RETURNING 
                 id,
                 name, 
+                birthday,
+                avatar_url,
                 email, 
                 email_confirmed, 
                 created_at",
         )
         .bind(name)
+        .bind(birthday_date)
         .bind(email)
         .bind(encrypted_password)
         .fetch_one(&state.db_pool)

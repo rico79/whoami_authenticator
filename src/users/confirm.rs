@@ -50,6 +50,7 @@ impl EmailConfirmation {
     pub fn send(&self) -> Result<(), UserError> {
         // Generate code
         let token = IdTokenClaims::new(
+            &self.state,
             self.user.id,
             self.user.name.clone(),
             self.user.email.clone(),

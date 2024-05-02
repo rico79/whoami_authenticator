@@ -3,14 +3,15 @@ pub mod app_list;
 
 use axum::response::Redirect;
 use serde::Deserialize;
+use shuttle_runtime::SecretStore;
 use sqlx::{
-    postgres::PgRow,
-    types::{time::OffsetDateTime, Uuid},
-    FromRow, PgPool, Row,
+    types::chrono::{DateTime, Local},
+    types::Uuid,
+    FromRow,
 };
 use tracing::log::error;
 
-use crate::{auth::IdTokenClaims, users::User, utils::date_time::DateTime, AppState};
+use crate::{auth::IdTokenClaims, AppState};
 
 /// Error types
 #[derive(Debug, Deserialize)]
@@ -21,7 +22,7 @@ pub enum AppError {
 }
 
 /// App struct
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, FromRow)]
 pub struct App {
     pub id: i32,
     pub name: String,
@@ -31,26 +32,8 @@ pub struct App {
     logo_endpoint: String,
     pub jwt_secret: String,
     pub jwt_seconds_to_expire: i32,
-    pub created_at: DateTime,
+    pub created_at: DateTime<Local>,
     pub owner_id: Option<Uuid>,
-}
-
-/// To get App from database
-impl FromRow<'_, PgRow> for App {
-    fn from_row(row: &PgRow) -> sqlx::Result<Self> {
-        Ok(Self {
-            id: row.try_get("id")?,
-            name: row.try_get("name")?,
-            description: row.try_get("description")?,
-            base_url: row.try_get("base_url")?,
-            redirect_endpoint: row.try_get("redirect_endpoint")?,
-            logo_endpoint: row.try_get("logo_endpoint")?,
-            jwt_secret: row.try_get("jwt_secret")?,
-            jwt_seconds_to_expire: row.try_get("jwt_seconds_to_expire")?,
-            created_at: DateTime::from(row.try_get::<OffsetDateTime, &str>("created_at")?),
-            owner_id: row.try_get("owner_id")?,
-        })
-    }
 }
 
 impl App {
@@ -65,7 +48,7 @@ impl App {
             logo_endpoint: "".to_owned(),
             jwt_secret: "".to_owned(),
             jwt_seconds_to_expire: 0,
-            created_at: DateTime::default(),
+            created_at: Local::now(),
             owner_id: Some(owner_id.clone()),
         }
     }
@@ -76,28 +59,20 @@ impl App {
     }
 
     /// Authenticator app
-    pub async fn init_authenticator_app(
-        db_pool: &PgPool,
-        base_url: String,
-        jwt_secret: String,
-        jwt_seconds_to_expire: i32,
-        created_at: DateTime,
-        email: String,
-    ) -> Self {
+    pub fn init_authenticator_app(secrets: &SecretStore) -> Self {
         Self {
             id: 0,
-            name: "Authenticator".to_owned(),
+            name: secrets.get("APP_NAME").unwrap(),
             description: "Gère la connexion de vos utilisateurs pour vos apps".to_owned(),
-            base_url,
+            base_url: secrets.get("APP_URL").unwrap(),
             redirect_endpoint: "/home".to_owned(),
             logo_endpoint: "/assets/images/logo.png".to_owned(),
-            jwt_secret,
-            jwt_seconds_to_expire,
-            created_at,
-            owner_id: User::select_from_email(&db_pool, &email)
-                .await
-                .map(|owner| owner.id)
-                .ok(),
+            jwt_secret: secrets.get("JWT_SECRET").unwrap(),
+            jwt_seconds_to_expire: secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
+            created_at: DateTime::from_timestamp(1712899091, 0)
+                .unwrap_or_default()
+                .with_timezone(&Local),
+            owner_id: None,
         }
     }
 
@@ -118,8 +93,7 @@ impl App {
     /// Can update if owner
     /// NOTE that authenticator app can not be updated
     pub fn can_be_updated_by(&self, user_id: Uuid) -> bool {
-        !self.is_authenticator_app()
-            && self.is_owned_by(user_id)
+        !self.is_authenticator_app() && self.is_owned_by(user_id)
     }
 
     /// Get app from id
@@ -186,8 +160,8 @@ impl App {
             AppError::DatabaseError
         })?;
 
-        // Add Authenticator if same email than this app mailer user
-        if state.authenticator_app.owner_id.clone().unwrap_or_default() == claims.user_id() {
+        // If claims email is the mailer email then add authenticator app
+        if claims.email == state.owner_email {
             apps.push(state.authenticator_app.clone())
         }
 

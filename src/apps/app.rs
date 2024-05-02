@@ -5,11 +5,11 @@ use axum::{
     Form,
 };
 use serde::Deserialize;
+use sqlx::types::chrono::Local;
 
 use crate::{
     auth::IdTokenClaims,
     general::{go_back::GoBackTemplate, navbar::NavBarTemplate},
-    utils::date_time::DateTime,
     AppState,
 };
 
@@ -23,7 +23,6 @@ pub struct PageTemplate {
     navbar: NavBarTemplate,
     app: Option<App>,
     read_only: bool,
-    owned: bool,
     go_back: GoBackTemplate,
 }
 
@@ -47,7 +46,6 @@ impl PageTemplate {
                 },
                 app: Some(app.clone()),
                 read_only: !app.can_be_updated_by(claims.user_id()),
-                owned: app.is_owned_by(claims.user_id()),
                 go_back: GoBackTemplate { back_url },
             }),
             // No app means new app to create
@@ -57,7 +55,6 @@ impl PageTemplate {
                 },
                 app: app.clone(),
                 read_only: !App::new(&claims.user_id()).can_be_updated_by(claims.user_id()),
-                owned: true,
                 go_back: GoBackTemplate { back_url },
             }),
         }
@@ -85,7 +82,6 @@ impl PageTemplate {
                 },
                 app: Some(App::new(&claims.user_id())),
                 read_only: false,
-                owned: true,
                 go_back: GoBackTemplate { back_url },
             }),
         }
@@ -145,7 +141,7 @@ pub async fn post(
                 logo_endpoint: form.logo_endpoint.unwrap_or("".to_owned()),
                 jwt_secret: form.jwt_secret.unwrap_or("".to_owned()),
                 jwt_seconds_to_expire: form.jwt_seconds_to_expire.unwrap_or(0),
-                created_at: DateTime::default(),
+                created_at: Local::now(),
                 owner_id: Some(claims.user_id()),
             }
             .save(&state, &claims)

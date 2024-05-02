@@ -20,6 +20,7 @@ use super::create_session_from_credentials_and_redirect;
 #[template(path = "auth/signup.html")]
 pub struct PageTemplate {
     name: String,
+    birthday: String,
     email: String,
     error: String,
     app: App,
@@ -29,29 +30,15 @@ impl PageTemplate {
     /// Generate page from data
     pub fn from(
         name: Option<String>,
+        birthday: Option<String>,
         email: Option<String>,
         app: App,
         error: Option<UserError>,
     ) -> Self {
-        // Prepare error message
-        let error_message = match error {
-            None => "".to_owned(),
-            Some(UserError::AlreadyExisting) => format!(
-                "Le mail {} est déjà utilisé",
-                email.clone().unwrap_or("".to_owned())
-            ),
-            Some(UserError::MissingInformation) => {
-                "Veuillez remplir toutes vos informations".to_owned()
-            }
-            Some(UserError::PasswordsDoNotMatch) => {
-                "Veuillez taper deux fois le même password".to_owned()
-            }
-            _ => "Un problème est survenu, veuillez réessayer plus tard".to_owned(),
-        };
-
         PageTemplate {
-            error: error_message,
+            error: error.map_or("".to_owned(), |error| error.to_string()),
             name: name.unwrap_or("".to_owned()),
+            birthday: birthday.unwrap_or("".to_owned()),
             email: email.unwrap_or("".to_owned()),
             app,
         }
@@ -59,7 +46,13 @@ impl PageTemplate {
 
     /// Generate page from query params
     pub fn from_query(params: QueryParams, app: App) -> Self {
-        Self::from(params.name, params.email, app, params.error)
+        Self::from(
+            params.name,
+            params.birthday,
+            params.email,
+            app,
+            params.error,
+        )
     }
 }
 
@@ -68,6 +61,7 @@ impl PageTemplate {
 #[derive(Deserialize)]
 pub struct QueryParams {
     name: Option<String>,
+    birthday: Option<String>,
     email: Option<String>,
     app_id: Option<i32>,
     error: Option<UserError>,
@@ -94,6 +88,7 @@ pub async fn get(
 #[derive(Deserialize)]
 pub struct SignupForm {
     name: String,
+    birthday: String,
     email: String,
     password: String,
     confirm_password: String,
@@ -114,6 +109,7 @@ pub async fn post(
     let user = User::create(
         &state,
         &form.name,
+        &form.birthday,
         &form.email,
         &form.password,
         &form.confirm_password,
@@ -122,6 +118,7 @@ pub async fn post(
     .map_err(|error| {
         PageTemplate::from(
             Some(form.name.clone()),
+            Some(form.birthday.clone()),
             Some(form.email.clone()),
             app.clone(),
             Some(error),

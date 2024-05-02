@@ -32,9 +32,7 @@ impl PageTemplate {
         let error_message = match error {
             None => "".to_owned(),
             Some(AuthError::InvalidToken) => "".to_owned(),
-            Some(AuthError::UserNotExisting) => {
-                "Utilisateur inconnu".to_owned()
-            }
+            Some(AuthError::UserNotExisting) => "Utilisateur inconnu".to_owned(),
             Some(AuthError::WrongCredentials) => {
                 "Les données de connexion sont incorrectes".to_owned()
             }

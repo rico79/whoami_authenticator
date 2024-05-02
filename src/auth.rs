@@ -15,12 +15,12 @@ use axum::{
 };
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
-use chrono::Utc;
 use jsonwebtoken::{
     decode, encode, errors::ErrorKind::ExpiredSignature, DecodingKey, EncodingKey, Header,
     Validation,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::types::chrono::Utc;
 use sqlx::{types::Uuid, Row};
 use tracing::log::error;
 
@@ -64,6 +64,7 @@ impl IdTokenClaims {
     /// New IdTokenClaims based on user data
     /// The token will expire after the nb of seconds passed in argument
     pub fn new(
+        state: &AppState,
         user_id: Uuid,
         user_name: String,
         user_email: String,
@@ -78,7 +79,7 @@ impl IdTokenClaims {
             sub: user_id.to_string(),
             name: user_name,
             email: user_email,
-            iss: String::from("Brouclean Softwares Authenticator"),
+            iss: state.authenticator_app.base_url.clone(),
             iat: issued_at,
             exp: expiration,
         }
@@ -153,6 +154,7 @@ where
 {
     type Rejection = signin::PageTemplate;
 
+    /// Extract the Id Token Claims from the request
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         // Extract app state to get the jwt secret
         let state = parts
@@ -235,6 +237,7 @@ pub async fn create_session_from_credentials_and_redirect(
         })? {
             // Generate JWT
             let jwt = IdTokenClaims::new(
+                state,
                 user_id,
                 user_name,
                 email.to_string(),

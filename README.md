@@ -65,14 +65,15 @@ ALTER DATABASE authenticator OWNER TO devapp;
 For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for local dev) file containing
 ```
 # General
+APP_NAME = "Authenticator"
 APP_URL = "http://127.0.0.1:8000"
+OWNER_EMAIL = "Your email"
 
 # Database
 DB_PASSWORD = "Your db user password"
 
 # Emails
 MAIL_SMTP = "Your smtp url"
-MAIL_FROM = "Your from mail"
 MAIL_USER_NAME = "Your mailer user"
 MAIL_PASSWORD = "Your mailer password"
 

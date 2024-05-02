@@ -18,12 +18,13 @@ use axum::{
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::{ServeDir, ServeFile};
-use utils::{date_time::DateTime, email::AppMailer};
+use utils::email::AppMailer;
 
 /// App state
 /// Data that can be used in the entire app
 #[derive(Clone, Debug)]
 pub struct AppState {
+    owner_email: String,
     authenticator_app: App,
     db_pool: PgPool,
     mailer: AppMailer,
@@ -60,19 +61,10 @@ async fn http_server(
         .await
         .map_err(CustomError::new)?;
 
-    // Init authenticator app
-    let authenticator_app = App::init_authenticator_app(
-        &db_pool,
-        secrets.get("APP_URL").unwrap(),
-        secrets.get("JWT_SECRET").unwrap(),
-        secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
-        DateTime::from_timestamp(1712899091),
-        secrets.get("MAIL_USER_NAME").unwrap(),
-    ).await;
-
     // Set the app state
     let state = AppState {
-        authenticator_app,
+        owner_email: secrets.get("OWNER_EMAIL").unwrap(),
+        authenticator_app: App::init_authenticator_app(&secrets),
         db_pool,
         mailer: AppMailer::new(&secrets),
     };

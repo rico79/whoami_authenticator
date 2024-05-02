@@ -20,6 +20,7 @@ pub struct PageTemplate {
     go_back: GoBackTemplate,
     user: Option<User>,
     confirm_send_url: String,
+    profile_message: MessageTemplate,
     password_message: MessageTemplate,
 }
 
@@ -29,6 +30,7 @@ impl PageTemplate {
         state: &AppState,
         claims: IdTokenClaims,
         returned_user: Option<User>,
+        profile_message: MessageTemplate,
         password_message: MessageTemplate,
     ) -> Self {
         // Get user
@@ -50,9 +52,12 @@ impl PageTemplate {
             navbar: NavBarTemplate {
                 claims: Some(claims),
             },
-            go_back: GoBackTemplate { back_url: "/home".to_owned() },
+            go_back: GoBackTemplate {
+                back_url: "/home".to_owned(),
+            },
             user: user,
             confirm_send_url,
+            profile_message,
             password_message,
         }
     }
@@ -61,7 +66,14 @@ impl PageTemplate {
 /// Get handler
 /// Returns the page using the dedicated HTML template
 pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl IntoResponse {
-    PageTemplate::from(&state, claims, None, MessageTemplate::empty()).await
+    PageTemplate::from(
+        &state,
+        claims,
+        None,
+        MessageTemplate::empty(),
+        MessageTemplate::empty(),
+    )
+    .await
 }
 
 /// Profile form
@@ -70,6 +82,8 @@ pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl I
 pub struct ProfileForm {
     name: String,
     email: String,
+    birthday: String,
+    avatar_url: String,
 }
 
 /// Profile update handler
@@ -80,14 +94,21 @@ pub async fn update_profile(
     Form(form): Form<ProfileForm>,
 ) -> impl IntoResponse {
     // Update profile and get user
-    let user = User::update_profile(&state, &claims.user_id(), &form.name, &form.email)
-        .await
-        .ok();
+    let user = User::update_profile(
+        &state,
+        &claims.user_id(),
+        &form.name,
+        &form.birthday,
+        &form.avatar_url,
+        &form.email,
+    )
+    .await;
 
     match user {
-        Some(updated_user) => {
+        Ok(updated_user) => {
             // Renew the token if profile updated
             let claims = IdTokenClaims::new(
+                &state,
                 updated_user.id,
                 updated_user.name.clone(),
                 updated_user.email.clone(),
@@ -104,19 +125,32 @@ pub async fn update_profile(
                         claims,
                         Some(updated_user),
                         MessageTemplate::empty(),
+                        MessageTemplate::empty(),
                     )
                     .await,
                 )
                 .into_response()
             } else {
-                PageTemplate::from(&state, claims, None, MessageTemplate::empty())
-                    .await
-                    .into_response()
+                PageTemplate::from(
+                    &state,
+                    claims,
+                    None,
+                    MessageTemplate::empty(),
+                    MessageTemplate::empty(),
+                )
+                .await
+                .into_response()
             }
         }
-        None => PageTemplate::from(&state, claims, None, MessageTemplate::empty())
-            .await
-            .into_response(),
+        Err(error) => PageTemplate::from(
+            &state,
+            claims,
+            None,
+            MessageTemplate::from_body("negative".to_owned(), error.to_string(), true),
+            MessageTemplate::empty(),
+        )
+        .await
+        .into_response(),
     }
 }
 
@@ -135,8 +169,13 @@ pub async fn update_password(
     Form(form): Form<PasswordForm>,
 ) -> impl IntoResponse {
     // Update password and get user
-    let user =
-        User::update_password(&state, &claims.user_id(), &form.password, &form.confirm_password).await;
+    let user = User::update_password(
+        &state,
+        &claims.user_id(),
+        &form.password,
+        &form.confirm_password,
+    )
+    .await;
 
     // Check user
     match user {
