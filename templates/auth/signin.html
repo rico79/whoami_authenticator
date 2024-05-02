@@ -30,6 +30,10 @@
         {% endif %}
 
         <form class="ui form" method="POST" action="/signin">
+            {% if let Some(redirect) = redirect_to %}
+            <input type="hidden" name="redirect_to" value="{{ redirect }}" />
+            {% endif %}
+
             <div class="ui error message"></div>
 
             <div class="field">

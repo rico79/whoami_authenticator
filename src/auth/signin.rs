@@ -18,6 +18,7 @@ pub struct PageTemplate {
     error: String,
     email: String,
     app: App,
+    redirect_to: Option<String>,
 }
 
 impl PageTemplate {
@@ -27,6 +28,7 @@ impl PageTemplate {
         email: Option<String>,
         app: Option<App>,
         error: Option<AuthError>,
+        redirect_to: Option<String>,
     ) -> Self {
         // Prepare error message
         let error_message = match error {
@@ -45,13 +47,14 @@ impl PageTemplate {
         PageTemplate {
             error: error_message,
             email: email.unwrap_or("".to_owned()),
+            redirect_to,
             app: app.unwrap_or(state.authenticator_app.clone()),
         }
     }
 
     /// Generate page from query params
     pub fn from_query(state: &AppState, params: QueryParams, app: Option<App>) -> Self {
-        Self::from(state, params.email, app, params.error)
+        Self::from(state, params.email, app, params.error, params.redirect_to)
     }
 }
 
@@ -62,6 +65,7 @@ pub struct QueryParams {
     email: Option<String>,
     app_id: Option<i32>,
     error: Option<AuthError>,
+    redirect_to: Option<String>,
 }
 
 /// Get handler
@@ -80,7 +84,8 @@ pub async fn get(
 
     // Check if already connected
     if IdTokenClaims::get_from_cookies(&state, &cookies).is_ok() {
-        app.redirect_to().into_response()
+        app.redirect_to_another_endpoint(params.redirect_to)
+            .into_response()
     } else {
         PageTemplate::from_query(&state, params, Some(app)).into_response()
     }
@@ -93,6 +98,7 @@ pub struct SigninForm {
     email: String,
     app_id: i32,
     password: String,
+    redirect_to: Option<String>,
 }
 
 /// Post handler
@@ -113,7 +119,16 @@ pub async fn post(
         &form.email,
         &form.password,
         form.app_id,
+        form.redirect_to.clone(),
     )
     .await
-    .map_err(|error| PageTemplate::from(&state, Some(form.email), Some(app), Some(error)))
+    .map_err(|error| {
+        PageTemplate::from(
+            &state,
+            Some(form.email),
+            Some(app),
+            Some(error),
+            form.redirect_to,
+        )
+    })
 }

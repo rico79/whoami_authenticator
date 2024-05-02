@@ -106,7 +106,32 @@ impl App {
 
     /// Create redirect url
     pub fn redirect_url(&self) -> String {
-        format!("{}{}", &self.base_url, &self.redirect_endpoint)
+        self.url_to_endpoint(&self.redirect_endpoint)
+    }
+
+    /// Create redirect url
+    fn url_to_endpoint(&self, endpoint: &String) -> String {
+        match (self.base_url.ends_with("/"), endpoint.starts_with("/")) {
+            (true, true) => format!("{}{}", self.base_url, &endpoint[1..]),
+            (true, false) => format!("{}{}", self.base_url, endpoint),
+            (false, true) => format!("{}{}", self.base_url, endpoint),
+            (false, false) => format!("{}/{}", self.base_url, endpoint),
+        }
+    }
+
+    /// App redirection
+    /// Redirect to the app after signin
+    pub fn redirect_to(&self) -> Redirect {
+        self.redirect_to_another_endpoint(None)
+    }
+
+    /// App redirection
+    /// Redirect to the app after signin
+    pub fn redirect_to_another_endpoint(&self, another_endpoint: Option<String>) -> Redirect {
+        match another_endpoint {
+            Some(endpoint) => Redirect::to(&self.url_to_endpoint(&endpoint)),
+            None => Redirect::to(&self.redirect_url()),
+        }
     }
 
     /// Create logo url
@@ -116,12 +141,6 @@ impl App {
         } else {
             "/assets/images/app.png".to_owned()
         }
-    }
-
-    /// App redirection
-    /// Redirect to the app after signin
-    pub fn redirect_to(&self) -> Redirect {
-        Redirect::to(&self.redirect_url())
     }
 
     /// Select all apps owned by the user

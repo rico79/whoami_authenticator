@@ -6,6 +6,7 @@ use std::fmt::Debug;
 use std::fmt::Display;
 
 use askama_axum::IntoResponse;
+use axum::extract::Request;
 use axum::response::Redirect;
 use axum::{
     async_trait,
@@ -162,15 +163,33 @@ where
             .await
             .unwrap();
 
+        // Extract request
+        let request_uri = Request::from_parts(parts.clone(), state.clone())
+            .uri()
+            .clone();
+
         // Extract cookies
         let cookies = parts.extract::<CookieJar>().await.map_err(|error| {
             error!("{:?}", error);
-            signin::PageTemplate::from(&state, None, None, Some(AuthError::InvalidToken))
+            signin::PageTemplate::from(
+                &state,
+                None,
+                None,
+                Some(AuthError::InvalidToken),
+                Some(request_uri.to_string()),
+            )
         })?;
 
         // Extract token
-        Self::get_from_cookies(&state, &cookies)
-            .map_err(|error| signin::PageTemplate::from(&state, None, None, Some(error)))
+        Self::get_from_cookies(&state, &cookies).map_err(|error| {
+            signin::PageTemplate::from(
+                &state,
+                None,
+                None,
+                Some(error),
+                Some(request_uri.to_string()),
+            )
+        })
     }
 }
 
@@ -206,6 +225,7 @@ pub async fn create_session_from_credentials_and_redirect(
     email: &String,
     password: &String,
     app_id: i32,
+    redirect_to: Option<String>,
 ) -> Result<impl IntoResponse, AuthError> {
     // Check if missing credentials
     if email.is_empty() || password.is_empty() {
@@ -251,7 +271,7 @@ pub async fn create_session_from_credentials_and_redirect(
                 jwt,
                 App::select_app_or_authenticator(&state, app_id)
                     .await
-                    .redirect_to(),
+                    .redirect_to_another_endpoint(redirect_to),
             ))
         }
         // Wrong Password
