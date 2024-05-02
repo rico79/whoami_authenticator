@@ -13,7 +13,7 @@ use super::{create_session_from_credentials_and_redirect, AuthError, IdTokenClai
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "connection/signin.html")]
+#[template(path = "auth/signin.html")]
 pub struct PageTemplate {
     error: String,
     email: String,

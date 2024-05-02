@@ -17,7 +17,7 @@ use super::create_session_from_credentials_and_redirect;
 /// Template
 /// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "connection/signup.html")]
+#[template(path = "auth/signup.html")]
 pub struct PageTemplate {
     name: String,
     email: String,
