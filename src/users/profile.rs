@@ -4,12 +4,12 @@ use axum_extra::extract::{cookie::Cookie, CookieJar};
 use serde::Deserialize;
 
 use crate::{
-    utils::jwt::IdTokenClaims,
     general::{
         go_back::GoBackButton,
         message::{Level, MessageBlock},
         navbar::NavBarBlock,
     },
+    utils::jwt::{IdTokenClaims, JWTGenerator},
     AppState,
 };
 
@@ -91,15 +91,10 @@ pub async fn update_profile_handler(
 
     match potentially_updated_user {
         Ok(updated_user) => {
-            let claims = IdTokenClaims::new(
-                &state,
-                updated_user.id,
-                updated_user.name.clone(),
-                updated_user.mail.clone(),
-                state.authenticator_app.jwt_seconds_to_expire.clone(),
-            );
+            let id_token =
+                JWTGenerator::for_authenticator(&state, &updated_user).generate_id_token();
 
-            if let Ok(id_token) = claims.encode(state.authenticator_app.jwt_secret.clone()) {
+            if let Ok((id_token, claims)) = id_token {
                 (
                     cookies.add(Cookie::new("session_id", id_token)),
                     ProfilePage::from(&state, claims, Some(updated_user), MessageBlock::empty())

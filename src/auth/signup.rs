@@ -13,7 +13,8 @@ use crate::{
     AppState,
 };
 
-use super::create_session_from_credentials_and_redirect_response;
+use super::create_session_into_response;
+
 
 #[derive(Template)]
 #[template(path = "auth/signup_page.html")]
@@ -112,12 +113,11 @@ pub async fn post_handler(
 
     let _ = ConfirmationMail::from(&state, created_user.clone(), app.clone()).send();
 
-    if let Ok(redirect_with_session) = create_session_from_credentials_and_redirect_response(
+    if let Ok(redirect_with_session) = create_session_into_response(
         cookies,
         &state,
-        &form.mail,
-        &form.password,
-        app.id,
+        &created_user,
+        &app,
         None,
     )
     .await

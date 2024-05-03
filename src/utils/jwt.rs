@@ -24,18 +24,6 @@ use crate::{
     AppState,
 };
 
-pub enum JWT {
-    IdToken,
-}
-
-impl Display for JWT {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            JWT::IdToken => write!(f, "id_token"),
-        }
-    }
-}
-
 pub struct JWTGenerator {
     authenticator_app: App,
     app: App,
@@ -49,6 +37,37 @@ impl JWTGenerator {
             app: app.clone(),
             user: user.clone(),
         }
+    }
+
+    pub fn for_authenticator(state: &AppState, user: &User) -> Self {
+        Self::new(state, &state.authenticator_app, user)
+    }
+
+    pub fn generate_id_token(&self) -> Result<(String, IdTokenClaims), AuthError> {
+        let now = Utc::now().timestamp();
+
+        let expiration_time = now + i64::from(self.app.jwt_seconds_to_expire);
+
+        let claims = IdTokenClaims {
+            sub: self.user.id.to_string(),
+            name: self.user.name.clone(),
+            mail: self.user.mail.clone(),
+            iss: self.authenticator_app.base_url.clone(),
+            iat: now,
+            exp: expiration_time,
+        };
+
+        let generated_token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(self.app.jwt_secret.as_ref()),
+        )
+        .map_err(|error| {
+            error!("{:?}", error);
+            AuthError::TokenCreationFailed
+        })?;
+
+        Ok((generated_token, claims))
     }
 }
 
@@ -71,27 +90,6 @@ impl IdTokenClaims {
         Uuid::parse_str(&self.sub).unwrap()
     }
 
-    pub fn new(
-        state: &AppState,
-        user_id: Uuid,
-        user_name: String,
-        user_mail: String,
-        seconds_to_expire: i32,
-    ) -> Self {
-        let now = Utc::now().timestamp();
-
-        let expiration_time = now + i64::from(seconds_to_expire);
-
-        IdTokenClaims {
-            sub: user_id.to_string(),
-            name: user_name,
-            mail: user_mail,
-            iss: state.authenticator_app.base_url.clone(),
-            iat: now,
-            exp: expiration_time,
-        }
-    }
-
     pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
         let token = cookies.get("session_id").ok_or(AuthError::InvalidToken)?;
 
@@ -99,18 +97,6 @@ impl IdTokenClaims {
             token.value().to_string(),
             state.authenticator_app.jwt_secret.clone(),
         )
-    }
-
-    pub fn encode(&self, secret: String) -> Result<String, AuthError> {
-        encode(
-            &Header::default(),
-            self,
-            &EncodingKey::from_secret(secret.as_ref()),
-        )
-        .map_err(|error| {
-            error!("{:?}", error);
-            AuthError::TokenCreationFailed
-        })
     }
 
     pub fn decode(token: String, secret: String) -> Result<Self, AuthError> {

@@ -7,10 +7,14 @@ use axum_extra::extract::cookie::CookieJar;
 use serde::Deserialize;
 
 use crate::{
-    apps::App, general::message::{Level, MessageBlock}, utils::jwt::IdTokenClaims, AppState
+    apps::App,
+    general::message::{Level, MessageBlock},
+    users::User,
+    utils::jwt::IdTokenClaims,
+    AppState,
 };
 
-use super::create_session_from_credentials_and_redirect_response;
+use super::{create_session_into_response, AuthError};
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]
@@ -87,7 +91,7 @@ pub async fn get_handler(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct SigninForm {
     mail: String,
     app_id: i32,
@@ -100,20 +104,51 @@ pub async fn post_handler(
     State(state): State<AppState>,
     Form(form): Form<SigninForm>,
 ) -> Result<impl IntoResponse, SigninPage> {
-    let app_to_connect_to = App::select_app_or_authenticator(&state, form.app_id).await;
+    let app_to_connect = App::select_app_or_authenticator(&state, form.app_id).await;
 
-    create_session_from_credentials_and_redirect_response(
+    let user = User::select_from_mail(&state, &form.mail)
+        .await
+        .map_err(|error| {
+            SigninPage::for_app_from_form_with_message(
+                app_to_connect.clone(),
+                form.clone(),
+                MessageBlock::closeable(Level::Error, "Connexion impossible", &error.to_string()),
+            )
+        })?;
+
+    let password_is_not_ok = !user
+        .password_match(form.password.clone())
+        .map_err(|error| {
+            SigninPage::for_app_from_form_with_message(
+                app_to_connect.clone(),
+                form.clone(),
+                MessageBlock::closeable(Level::Error, "Connexion impossible", &error.to_string()),
+            )
+        })?;
+
+    if password_is_not_ok {
+        return Err(SigninPage::for_app_from_form_with_message(
+            app_to_connect,
+            form,
+            MessageBlock::closeable(
+                Level::Error,
+                "Connexion impossible",
+                &AuthError::WrongCredentials.to_string(),
+            ),
+        ));
+    }
+
+    create_session_into_response(
         cookies,
         &state,
-        &form.mail,
-        &form.password,
-        form.app_id,
+        &user,
+        &app_to_connect,
         form.requested_endpoint.clone(),
     )
     .await
     .map_err(|error| {
         SigninPage::for_app_from_form_with_message(
-            app_to_connect_to,
+            app_to_connect,
             form,
             MessageBlock::closeable(Level::Error, "Connexion impossible", &error.to_string()),
         )

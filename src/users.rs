@@ -11,7 +11,7 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{utils::jwt::IdTokenClaims, utils::crypto::encrypt_text, AppState};
+use crate::{utils::{crypto::{encrypt_text, verify_encrypted_text}, jwt::IdTokenClaims}, AppState};
 
 #[derive(Debug, Deserialize)]
 pub enum UserError {
@@ -53,9 +53,17 @@ pub struct User {
     pub mail: String,
     pub mail_is_confirmed: bool,
     pub created_at: DateTime<Local>,
+    encrypted_password: String,
 }
 
 impl User {
+    pub fn password_match(&self, password: String) -> Result<bool, UserError> {
+        verify_encrypted_text(&password, &self.encrypted_password).map_err(|error| {
+            error!("{:?}", error);
+            UserError::CryptoError
+        })
+    }
+
     pub async fn select_from_id(state: &AppState, user_id: Uuid) -> Result<Self, UserError> {
         let user: User = sqlx::query_as(
             "SELECT 
@@ -65,9 +73,9 @@ impl User {
                     avatar_url,
                     mail, 
                     mail_is_confirmed, 
-                    created_at 
-                FROM 
-                    users 
+                    created_at,
+                    encrypted_password 
+                FROM users 
                 WHERE 
                     id = $1",
         )
@@ -76,6 +84,35 @@ impl User {
         .await
         .map_err(|error| {
             error!("Selecting user from id {} -> {:?}", user_id, error);
+            UserError::NotFound
+        })?;
+
+        Ok(user)
+    }
+
+    pub async fn select_from_mail(
+        state: &AppState,
+        mail: &String,
+    ) -> Result<Self, UserError> {
+        let user: User = sqlx::query_as(
+            "SELECT 
+                    id,
+                    name, 
+                    birthday,
+                    avatar_url,
+                    mail, 
+                    mail_is_confirmed, 
+                    created_at,
+                    encrypted_password 
+                FROM users 
+                WHERE 
+                    mail = $1",
+        )
+        .bind(mail)
+        .fetch_one(&state.db_pool)
+        .await
+        .map_err(|error| {
+            error!("Selecting user from mail {} -> {:?}", mail, error);
             UserError::NotFound
         })?;
 
@@ -118,7 +155,8 @@ impl User {
                     avatar_url,
                     mail, 
                     mail_is_confirmed, 
-                    created_at",
+                    created_at,
+                    encrypted_password",
         )
         .bind(name)
         .bind(birthday_date)
@@ -268,7 +306,8 @@ impl User {
                 avatar_url,
                 mail, 
                 mail_is_confirmed, 
-                created_at",
+                created_at,
+                encrypted_password",
         )
         .bind(name)
         .bind(birthday_date)

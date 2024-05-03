@@ -8,8 +8,8 @@ use tracing::error;
 
 use crate::{
     apps::App,
-    utils::jwt::IdTokenClaims,
     general::message::{Level, MessageBlock},
+    utils::jwt::JWTGenerator,
     AppState,
 };
 
@@ -147,15 +147,9 @@ impl ConfirmationMail {
     }
 
     pub fn send(&self) -> Result<(), UserError> {
-        let id_token = IdTokenClaims::new(
-            &self.state,
-            self.user.id,
-            self.user.name.clone(),
-            self.user.mail.clone(),
-            604800, // 604800 seconds = 1 Week
-        )
-        .encode(self.state.authenticator_app.jwt_secret.clone())
-        .map_err(|_| UserError::MailConfirmationFailed)?;
+        let (id_token, _) = JWTGenerator::new(&self.state, &self.app, &self.user)
+            .generate_id_token()
+            .map_err(|_| UserError::MailConfirmationFailed)?;
 
         let validation_url = format!(
             "{}/confirm_mail?app_id={}&token={}",
@@ -172,7 +166,7 @@ Nous vous souhaitons la bienvenue.
 Pour pouvoir continuer et utiliser nos app, veuillez confirmer votre mail en cliquant sur le lien suivant :
 {}
 
-Notez que ce code n'est valable qu'une semaine.
+Notez que ce code n'est valable qu'une heure.
 
 En vous souhaitant une excellente journée !!
 
