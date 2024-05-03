@@ -150,8 +150,6 @@ impl Display for IdTokenClaims {
     }
 }
 
-/// Implement FromRequestParts for Claims (the JWT struct)
-/// FromRequestParts allows us to use JWTClaims without consuming the request
 #[async_trait]
 impl<S> FromRequestParts<S> for IdTokenClaims
 where
