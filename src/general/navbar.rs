@@ -1,6 +1,6 @@
 use askama::Template;
 
-use crate::auth::IdTokenClaims;
+use crate::utils::jwt::IdTokenClaims;
 
 #[derive(Clone, Debug, Template)]
 #[template(path = "general/navbar_block.html")]

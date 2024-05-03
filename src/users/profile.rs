@@ -1,10 +1,10 @@
 use askama_axum::{IntoResponse, Template};
 use axum::{extract::State, Form};
-use axum_extra::extract::CookieJar;
+use axum_extra::extract::{cookie::Cookie, CookieJar};
 use serde::Deserialize;
 
 use crate::{
-    auth::{create_session_into_response, IdTokenClaims},
+    utils::jwt::IdTokenClaims,
     general::{
         go_back::GoBackButton,
         message::{Level, MessageBlock},
@@ -100,13 +100,12 @@ pub async fn update_profile_handler(
             );
 
             if let Ok(id_token) = claims.encode(state.authenticator_app.jwt_secret.clone()) {
-                create_session_into_response(
-                    cookies,
-                    id_token,
+                (
+                    cookies.add(Cookie::new("session_id", id_token)),
                     ProfilePage::from(&state, claims, Some(updated_user), MessageBlock::empty())
                         .await,
                 )
-                .into_response()
+                    .into_response()
             } else {
                 ProfilePage::from(&state, claims, None, MessageBlock::empty())
                     .await

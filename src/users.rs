@@ -11,7 +11,7 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{auth::IdTokenClaims, utils::crypto::encrypt_text, AppState};
+use crate::{utils::jwt::IdTokenClaims, utils::crypto::encrypt_text, AppState};
 
 #[derive(Debug, Deserialize)]
 pub enum UserError {
@@ -19,7 +19,7 @@ pub enum UserError {
     CryptoError,
     MissingInformation,
     PasswordsDoNotMatch,
-    AlreadyExisting,
+    AlreadyExistingMail,
     InvalidId,
     InvalidBirthday,
     NotFound,
@@ -33,7 +33,7 @@ impl fmt::Display for UserError {
             UserError::CryptoError => "Un problème est survenu, veuillez réessayer plus tard",
             UserError::MissingInformation => "Veuillez remplir toutes les informations",
             UserError::PasswordsDoNotMatch => "Veuillez taper le même mot de passe",
-            UserError::AlreadyExisting => "L'utilisateur existe déjà",
+            UserError::AlreadyExistingMail => "Un utilisateur a déjà ce mail",
             UserError::InvalidId => "L'identifiant de l'utilisateur est invalide",
             UserError::NotFound => "L'utilisateur est introuvable",
             UserError::MailConfirmationFailed => "La confirmation du a échouée",
@@ -127,9 +127,19 @@ impl User {
         .bind(user_id)
         .fetch_one(&state.db_pool)
         .await
-        .map_err(|error| {
-            error!("Updating profile of {} -> {:?}", user_id, error);
-            UserError::NotFound
+        .map_err(|error| match error {
+            sqlx::Error::Database(error) => {
+                if error.is_unique_violation() {
+                    UserError::AlreadyExistingMail
+                } else {
+                    error!("Updating profile of {} -> {:?}", user_id, error);
+                    UserError::DatabaseError
+                }
+            }
+            _ => {
+                error!("Updating profile of {} -> {:?}", user_id, error);
+                UserError::DatabaseError
+            }
         })?;
 
         Ok(user)
@@ -269,7 +279,7 @@ impl User {
         .map_err(|error| match error {
             sqlx::Error::Database(error) => {
                 if error.is_unique_violation() {
-                    UserError::AlreadyExisting
+                    UserError::AlreadyExistingMail
                 } else {
                     error!("Creating user {} -> {:?}", name, error);
                     UserError::DatabaseError

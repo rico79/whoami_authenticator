@@ -11,7 +11,7 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{auth::IdTokenClaims, AppState};
+use crate::{utils::jwt::IdTokenClaims, AppState};
 
 #[derive(Debug, Deserialize)]
 pub enum AppError {

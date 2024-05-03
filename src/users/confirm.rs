@@ -8,7 +8,7 @@ use tracing::error;
 
 use crate::{
     apps::App,
-    auth::IdTokenClaims,
+    utils::jwt::IdTokenClaims,
     general::message::{Level, MessageBlock},
     AppState,
 };

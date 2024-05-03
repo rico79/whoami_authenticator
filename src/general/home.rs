@@ -3,7 +3,7 @@ use axum::extract::State;
 
 use crate::{
     apps::{app_list::AppListBlock, App},
-    auth::IdTokenClaims,
+    utils::jwt::IdTokenClaims,
     AppState,
 };
 

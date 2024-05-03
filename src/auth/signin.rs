@@ -7,12 +7,10 @@ use axum_extra::extract::cookie::CookieJar;
 use serde::Deserialize;
 
 use crate::{
-    apps::App,
-    general::message::{Level, MessageBlock},
-    AppState,
+    apps::App, general::message::{Level, MessageBlock}, utils::jwt::IdTokenClaims, AppState
 };
 
-use super::{create_session_from_credentials_and_redirect_response, IdTokenClaims};
+use super::create_session_from_credentials_and_redirect_response;
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]

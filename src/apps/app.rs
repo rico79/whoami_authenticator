@@ -8,8 +8,8 @@ use serde::Deserialize;
 use sqlx::types::chrono::Local;
 
 use crate::{
-    auth::IdTokenClaims,
     general::{go_back::GoBackButton, navbar::NavBarBlock},
+    utils::jwt::IdTokenClaims,
     AppState,
 };
 
