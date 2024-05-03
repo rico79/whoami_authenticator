@@ -15,26 +15,26 @@ pub enum Action {
     Confirm,
 }
 
-/// Email confirmation struct
+/// Mail confirmation struct
 #[derive(Clone, Debug)]
-pub struct EmailConfirmation {
+pub struct MailConfirmation {
     state: AppState,
     user: User,
     app: App,
 }
 
-impl EmailConfirmation {
+impl MailConfirmation {
     /// Create from User
     pub fn from(state: &AppState, user: User, app: App) -> Self {
-        EmailConfirmation {
+        MailConfirmation {
             state: state.clone(),
             user,
             app,
         }
     }
 
-    /// Email confirmation sending
-    /// Send the confirmation email to the user with the confirmation link to click (which will be handled by the get)
+    /// Mail confirmation sending
+    /// Send the confirmation mail to the user with the confirmation link to click (which will be handled by the get)
     pub fn send_url(&self) -> String {
         format!(
             "{}/confirm?action={:?}&app_id={}&user_id={}",
@@ -45,21 +45,21 @@ impl EmailConfirmation {
         )
     }
 
-    /// Email confirmation sending
-    /// Send the confirmation email to the user with the confirmation link to click (which will be handled by the get)
+    /// Mail confirmation sending
+    /// Send the confirmation mail to the user with the confirmation link to click (which will be handled by the get)
     pub fn send(&self) -> Result<(), UserError> {
         // Generate code
         let token = IdTokenClaims::new(
             &self.state,
             self.user.id,
             self.user.name.clone(),
-            self.user.email.clone(),
+            self.user.mail.clone(),
             604800, // 604800 seconds = 1 Week
         )
         .encode(self.state.authenticator_app.jwt_secret.clone())
-        .map_err(|_| UserError::EmailConfirmationFailed)?;
+        .map_err(|_| UserError::MailConfirmationFailed)?;
 
-        // Prepare email
+        // Prepare mail
         let validation_url = format!(
             "{}/confirm?action={:?}&app_id={}&token={}",
             self.state.authenticator_app.base_url,
@@ -82,18 +82,18 @@ En vous souhaitant une excellente journée !!
 
 L'équipe de Brouclean Softwares",self.user.name, self.app.name,validation_url);
 
-        // Send email
-        if let Err(error) = self.state.mailer.send(
-            format!("{} <{}>", self.user.name, self.user.email),
+        // Send mail
+        if let Err(error) = self.state.mailer.send_mail(
+            format!("{} <{}>", self.user.name, self.user.mail),
             subject,
             body,
         ) {
             error!(
-                "Sending email confirmation to '{}' -> {:?}",
-                self.user.email, error
+                "Sending mail confirmation to '{}' -> {:?}",
+                self.user.mail, error
             );
 
-            Err(UserError::EmailConfirmationFailed)
+            Err(UserError::MailConfirmationFailed)
         } else {
             Ok(())
         }
@@ -111,23 +111,23 @@ pub struct PageTemplate {
 }
 
 impl PageTemplate {
-    fn from(action: Action, app: App, email: Option<String>) -> Self {
-        match (action, email) {
-            (Action::Send, Some(email)) => PageTemplate {
-                action: "Envoi de l'email de confirmation".to_owned(),
+    fn from(action: Action, app: App, mail: Option<String>) -> Self {
+        match (action, mail) {
+            (Action::Send, Some(mail)) => PageTemplate {
+                action: "Envoi de l'mail de confirmation".to_owned(),
                 message: MessageTemplate::from(
-                    "Email envoyé".to_owned(),
+                    "Mail envoyé".to_owned(),
                     "success".to_owned(),
                     format!(
-                        "Un email pour confirmation à bien été envoyé à: {}",
-                        email.clone()
+                        "Un mail pour confirmation à bien été envoyé à: {}",
+                        mail.clone()
                     ),
                     false,
                 ),
                 app,
             },
             (Action::Send, None) => PageTemplate {
-                action: "Envoi de l'email de confirmation".to_owned(),
+                action: "Envoi de l'mail de confirmation".to_owned(),
                 message: MessageTemplate::from(
                     "Envoi impossible".to_owned(),
                     "negative".to_owned(),
@@ -136,18 +136,18 @@ impl PageTemplate {
                 ),
                 app,
             },
-            (Action::Confirm, Some(email)) => PageTemplate {
-                action: "Confirmation de l'email".to_owned(),
+            (Action::Confirm, Some(mail)) => PageTemplate {
+                action: "Confirmation de l'mail".to_owned(),
                 message: MessageTemplate::from(
-                    "Email confirmé".to_owned(),
+                    "Mail confirmé".to_owned(),
                     "success".to_owned(),
-                    format!("Vous avez bien confirmé le mail suivant: {}", email.clone()),
+                    format!("Vous avez bien confirmé le mail suivant: {}", mail.clone()),
                     false,
                 ),
                 app,
             },
             (Action::Confirm, None) => PageTemplate {
-                action: "Confirmation de l'email".to_owned(),
+                action: "Confirmation de l'mail".to_owned(),
                 message: MessageTemplate::from(
                     "Confirmation impossible".to_owned(),
                     "negative".to_owned(),
@@ -183,7 +183,7 @@ pub async fn get(
         params.action,
         Uuid::parse_str(&params.user_id.unwrap_or_default()).ok(),
     ) {
-        // Send email to user
+        // Send mail to user
         (Action::Send, Some(user_id)) => {
             // Get the user
             let user = User::select_from_id(&state, user_id)
@@ -191,26 +191,26 @@ pub async fn get(
                 .map_err(|_| PageTemplate::from(Action::Send, app.clone(), None))?;
 
             // Send and check result
-            match EmailConfirmation::from(&state, user.clone(), app.clone()).send() {
-                Ok(_) => Ok(PageTemplate::from(Action::Send, app, Some(user.email))),
+            match MailConfirmation::from(&state, user.clone(), app.clone()).send() {
+                Ok(_) => Ok(PageTemplate::from(Action::Send, app, Some(user.mail))),
                 Err(_) => Err(PageTemplate::from(Action::Send, app, None)),
             }
         }
 
-        // Send email to no one
+        // Send mail to no one
         (Action::Send, None) => Err(PageTemplate::from(Action::Send, app, None)),
 
-        // Confirm email
+        // Confirm mail
         (Action::Confirm, _) => {
-            // Confirm email into database and get email confirmed
-            let email_confirmed = User::confirm_email(&state, &params.token.unwrap_or_default())
+            // Confirm mail into database and get mail confirmed
+            let confirmed_mail = User::confirm_mail(&state, &params.token.unwrap_or_default())
                 .await
                 .map_err(|_| PageTemplate::from(Action::Confirm, app.clone(), None))?;
 
             Ok(PageTemplate::from(
                 Action::Confirm,
                 app,
-                Some(email_confirmed),
+                Some(confirmed_mail),
             ))
         }
     }

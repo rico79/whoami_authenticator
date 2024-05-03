@@ -41,9 +41,9 @@
             </div>
 
             <div class="field">
-                <label class="label">Email</label>
+                <label class="label">Mail</label>
                 <div class="ui left icon input">
-                    <input class="input" type="email" name="email" value="{{ email }}"
+                    <input class="input" type="mail" name="mail" value="{{ mail }}"
                         placeholder="ex: yoda@dagobah.edu" />
                     <i class="envelope icon"></i>
                 </div>
@@ -81,11 +81,11 @@
 <script>
     $('.ui.form').form({
         fields: {
-            email: {
+            mail: {
                 rules: [
                     {
                         type: 'empty',
-                        prompt: 'Veuillez rentrer votre email'
+                        prompt: 'Veuillez rentrer votre mail'
                     },
                     {
                         type: 'regExp',

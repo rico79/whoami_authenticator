@@ -16,7 +16,7 @@ use super::{create_session_from_credentials_and_redirect, AuthError, IdTokenClai
 #[template(path = "auth/signin.html")]
 pub struct PageTemplate {
     error: String,
-    email: String,
+    mail: String,
     app: App,
     redirect_to: Option<String>,
 }
@@ -25,7 +25,7 @@ impl PageTemplate {
     /// Generate page from data
     pub fn from(
         state: &AppState,
-        email: Option<String>,
+        mail: Option<String>,
         app: Option<App>,
         error: Option<AuthError>,
         redirect_to: Option<String>,
@@ -46,7 +46,7 @@ impl PageTemplate {
 
         PageTemplate {
             error: error_message,
-            email: email.unwrap_or("".to_owned()),
+            mail: mail.unwrap_or("".to_owned()),
             redirect_to,
             app: app.unwrap_or(state.authenticator_app.clone()),
         }
@@ -54,7 +54,7 @@ impl PageTemplate {
 
     /// Generate page from query params
     pub fn from_query(state: &AppState, params: QueryParams, app: Option<App>) -> Self {
-        Self::from(state, params.email, app, params.error, params.redirect_to)
+        Self::from(state, params.mail, app, params.error, params.redirect_to)
     }
 }
 
@@ -62,7 +62,7 @@ impl PageTemplate {
 /// HTTP parameters used for the get Handler
 #[derive(Deserialize)]
 pub struct QueryParams {
-    email: Option<String>,
+    mail: Option<String>,
     app_id: Option<i32>,
     error: Option<AuthError>,
     redirect_to: Option<String>,
@@ -95,7 +95,7 @@ pub async fn get(
 /// Data expected from the signin form in order to connect the user
 #[derive(Deserialize)]
 pub struct SigninForm {
-    email: String,
+    mail: String,
     app_id: i32,
     password: String,
     redirect_to: Option<String>,
@@ -116,7 +116,7 @@ pub async fn post(
     create_session_from_credentials_and_redirect(
         cookies,
         &state,
-        &form.email,
+        &form.mail,
         &form.password,
         form.app_id,
         form.redirect_to.clone(),
@@ -125,7 +125,7 @@ pub async fn post(
     .map_err(|error| {
         PageTemplate::from(
             &state,
-            Some(form.email),
+            Some(form.mail),
             Some(app),
             Some(error),
             form.redirect_to,

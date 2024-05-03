@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{
     apps::App,
-    users::{confirm::EmailConfirmation, User, UserError},
+    users::{confirm::MailConfirmation, User, UserError},
     AppState,
 };
 
@@ -21,7 +21,7 @@ use super::create_session_from_credentials_and_redirect;
 pub struct PageTemplate {
     name: String,
     birthday: String,
-    email: String,
+    mail: String,
     error: String,
     app: App,
 }
@@ -31,7 +31,7 @@ impl PageTemplate {
     pub fn from(
         name: Option<String>,
         birthday: Option<String>,
-        email: Option<String>,
+        mail: Option<String>,
         app: App,
         error: Option<UserError>,
     ) -> Self {
@@ -39,7 +39,7 @@ impl PageTemplate {
             error: error.map_or("".to_owned(), |error| error.to_string()),
             name: name.unwrap_or("".to_owned()),
             birthday: birthday.unwrap_or("".to_owned()),
-            email: email.unwrap_or("".to_owned()),
+            mail: mail.unwrap_or("".to_owned()),
             app,
         }
     }
@@ -49,7 +49,7 @@ impl PageTemplate {
         Self::from(
             params.name,
             params.birthday,
-            params.email,
+            params.mail,
             app,
             params.error,
         )
@@ -62,7 +62,7 @@ impl PageTemplate {
 pub struct QueryParams {
     name: Option<String>,
     birthday: Option<String>,
-    email: Option<String>,
+    mail: Option<String>,
     app_id: Option<i32>,
     error: Option<UserError>,
 }
@@ -89,14 +89,14 @@ pub async fn get(
 pub struct SignupForm {
     name: String,
     birthday: String,
-    email: String,
+    mail: String,
     password: String,
     confirm_password: String,
     app_id: i32,
 }
 
 /// Post handler
-/// Process the signup form to create the user and send a confirmation email
+/// Process the signup form to create the user and send a confirmation mail
 pub async fn post(
     cookies: CookieJar,
     State(state): State<AppState>,
@@ -110,7 +110,7 @@ pub async fn post(
         &state,
         &form.name,
         &form.birthday,
-        &form.email,
+        &form.mail,
         &form.password,
         &form.confirm_password,
     )
@@ -119,20 +119,20 @@ pub async fn post(
         PageTemplate::from(
             Some(form.name.clone()),
             Some(form.birthday.clone()),
-            Some(form.email.clone()),
+            Some(form.mail.clone()),
             app.clone(),
             Some(error),
         )
     })?;
 
-    // Send confirmation email
-    let _ = EmailConfirmation::from(&state, user.clone(), app.clone()).send();
+    // Send confirmation mail
+    let _ = MailConfirmation::from(&state, user.clone(), app.clone()).send();
 
     // Connect the user and redirect
     if let Ok(response) = create_session_from_credentials_and_redirect(
         cookies,
         &state,
-        &form.email,
+        &form.mail,
         &form.password,
         app.id,
         None,

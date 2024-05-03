@@ -67,12 +67,12 @@ For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for
 # General
 APP_NAME = "Authenticator"
 APP_URL = "http://127.0.0.1:8000"
-OWNER_EMAIL = "Your email"
+OWNER_MAIL = "Your mail"
 
 # Database
 DB_PASSWORD = "Your db user password"
 
-# Emails
+# Mails
 MAIL_SMTP = "Your smtp url"
 MAIL_USER_NAME = "Your mailer user"
 MAIL_PASSWORD = "Your mailer password"

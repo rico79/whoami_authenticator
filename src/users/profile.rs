@@ -9,7 +9,7 @@ use crate::{
     AppState,
 };
 
-use super::{confirm::EmailConfirmation, User};
+use super::{confirm::MailConfirmation, User};
 
 /// Template
 /// HTML page definition with dynamic data
@@ -42,7 +42,7 @@ impl PageTemplate {
         // Prepare confirmation sending url
         let confirm_send_url = match &user {
             Some(user) => {
-                EmailConfirmation::from(&state, user.clone(), state.authenticator_app.clone())
+                MailConfirmation::from(&state, user.clone(), state.authenticator_app.clone())
                     .send_url()
             }
             None => "".to_owned(),
@@ -81,7 +81,7 @@ pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl I
 #[derive(Deserialize)]
 pub struct ProfileForm {
     name: String,
-    email: String,
+    mail: String,
     birthday: String,
     avatar_url: String,
 }
@@ -100,7 +100,7 @@ pub async fn update_profile(
         &form.name,
         &form.birthday,
         &form.avatar_url,
-        &form.email,
+        &form.mail,
     )
     .await;
 
@@ -111,7 +111,7 @@ pub async fn update_profile(
                 &state,
                 updated_user.id,
                 updated_user.name.clone(),
-                updated_user.email.clone(),
+                updated_user.mail.clone(),
                 state.authenticator_app.jwt_seconds_to_expire.clone(),
             );
 

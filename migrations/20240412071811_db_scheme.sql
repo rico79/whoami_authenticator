@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR NOT NULL,
     birthday DATE NOT NULL,
     avatar_url VARCHAR NOT NULL,
-    email VARCHAR NOT NULL UNIQUE,
-    email_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    mail VARCHAR NOT NULL UNIQUE,
+    mail_is_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
     encrypted_password VARCHAR NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

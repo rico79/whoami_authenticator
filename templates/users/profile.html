@@ -56,26 +56,26 @@
                     </div>
 
                     <div class="field">
-                        <label class="label">Email
-                            {% if profile.email_confirmed %}
+                        <label class="label">Mail
+                            {% if profile.mail_is_confirmed %}
                             <i class="green check icon"></i>
                             {% else %}
                             <i class="red close icon"></i>
                             {% endif %}
                         </label>
                         <div class="ui left icon input">
-                            <input class="input" type="email" name="email" value="{{ profile.email }}"
+                            <input class="input" type="mail" name="mail" value="{{ profile.mail }}"
                                 placeholder="ex: yoda@dagobah.edu" />
                             <i class="envelope icon"></i>
                         </div>
                     </div>
 
-                    {% if ! profile.email_confirmed %}
+                    {% if ! profile.mail_is_confirmed %}
                     <div class="ui negative message">
-                        L'email n'a pas été confirmé, veuillez vérifier votre boite
+                        L'mail n'a pas été confirmé, veuillez vérifier votre boite
                         <a class="ui negative basic button" href="{{ confirm_send_url }}" target="_blank">
                             <i class="paper plane icon"></i>
-                            Renvoyer la confirmation d'email
+                            Renvoyer la confirmation d'mail
                         </a>
                     </div>
                     {% endif %}
@@ -153,11 +153,11 @@
                     }
                 ]
             },
-            email: {
+            mail: {
                 rules: [
                     {
                         type: 'empty',
-                        prompt: 'Veuillez rentrer votre email'
+                        prompt: 'Veuillez rentrer votre mail'
                     },
                     {
                         type: 'regExp',

@@ -22,14 +22,13 @@ use jsonwebtoken::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::types::chrono::Utc;
-use sqlx::{types::Uuid, Row};
+use sqlx::types::Uuid;
 use tracing::log::error;
 
 use crate::apps::App;
 use crate::utils::crypto::verify_encrypted_text;
 use crate::AppState;
 
-/// Error types for auth errors
 #[derive(Debug, Deserialize)]
 pub enum AuthError {
     DatabaseError,
@@ -50,39 +49,35 @@ pub enum AuthError {
 pub struct IdTokenClaims {
     sub: String,
     pub name: String,
-    pub email: String,
+    pub mail: String,
     iss: String,
     iat: i64,
     exp: i64,
 }
 
 impl IdTokenClaims {
-    /// Get user id
     pub fn user_id(&self) -> Uuid {
         Uuid::parse_str(&self.sub).unwrap()
     }
 
-    /// New IdTokenClaims based on user data
-    /// The token will expire after the nb of seconds passed in argument
     pub fn new(
         state: &AppState,
         user_id: Uuid,
         user_name: String,
-        user_email: String,
+        user_mail: String,
         seconds_before_expiration: i32,
     ) -> Self {
-        // Generate issued at and expiration dates (X seconds after)
-        let issued_at = Utc::now().timestamp();
-        let expiration = issued_at + i64::from(seconds_before_expiration);
+        let now = Utc::now().timestamp();
 
-        // Create token claims
+        let expiration_time = now + i64::from(seconds_before_expiration);
+
         IdTokenClaims {
             sub: user_id.to_string(),
             name: user_name,
-            email: user_email,
+            mail: user_mail,
             iss: state.authenticator_app.base_url.clone(),
-            iat: issued_at,
-            exp: expiration,
+            iat: now,
+            exp: expiration_time,
         }
     }
 
@@ -90,15 +85,12 @@ impl IdTokenClaims {
     /// Get the app state and cookie jar
     /// return claims
     pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
-        // Extract token
-        if let Some(token) = cookies.get("session_id") {
-            Self::decode(
-                token.value().to_string(),
-                state.authenticator_app.jwt_secret.clone(),
-            )
-        } else {
-            Err(AuthError::InvalidToken)
-        }
+        let token = cookies.get("session_id").ok_or(AuthError::InvalidToken)?;
+
+        Self::decode(
+            token.value().to_string(),
+            state.authenticator_app.jwt_secret.clone(),
+        )
     }
 
     /// Generate an encoded JSON Web Token
@@ -116,8 +108,7 @@ impl IdTokenClaims {
 
     /// Decode JSON Web Token
     pub fn decode(token: String, secret: String) -> Result<Self, AuthError> {
-        // Decode the user data
-        let token_data = decode::<IdTokenClaims>(
+        let decoded_token = decode::<IdTokenClaims>(
             &token,
             &DecodingKey::from_secret(secret.as_ref()),
             &Validation::default(),
@@ -130,17 +121,16 @@ impl IdTokenClaims {
             AuthError::InvalidToken
         })?;
 
-        Ok(token_data.claims)
+        Ok(decoded_token.claims)
     }
 }
 
-/// Allow us to print the claim details
 impl Display for IdTokenClaims {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "User Id: {} - Name: {} - Email: {} - Issuing company: {}",
-            self.sub, self.name, self.email, self.iss
+            "User Id: {} - Name: {} - Mail: {} - Issuing company: {}",
+            self.sub, self.name, self.mail, self.iss
         )
     }
 }
@@ -155,21 +145,17 @@ where
 {
     type Rejection = signin::PageTemplate;
 
-    /// Extract the Id Token Claims from the request
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        // Extract app state to get the jwt secret
         let state = parts
             .extract_with_state::<AppState, _>(state)
             .await
             .unwrap();
 
-        // Extract request
         let request_uri = Request::from_parts(parts.clone(), state.clone())
             .uri()
             .clone();
 
-        // Extract cookies
-        let cookies = parts.extract::<CookieJar>().await.map_err(|error| {
+        let cookie_jar = parts.extract::<CookieJar>().await.map_err(|error| {
             error!("{:?}", error);
             signin::PageTemplate::from(
                 &state,
@@ -180,8 +166,7 @@ where
             )
         })?;
 
-        // Extract token
-        Self::get_from_cookies(&state, &cookies).map_err(|error| {
+        Self::get_from_cookies(&state, &cookie_jar).map_err(|error| {
             signin::PageTemplate::from(
                 &state,
                 None,
@@ -217,70 +202,57 @@ pub fn create_session_into_response(
 /// Create session id in cookies if user credentials are Ok
 /// Then redirect to an url
 /// Use the cookies and the App state
-/// Get email and password and the url for redirect
+/// Get mail and password and the url for redirect
 /// Return session id wich is a JWT or an AuthError
 pub async fn create_session_from_credentials_and_redirect(
     cookies: CookieJar,
     state: &AppState,
-    email: &String,
+    mail: &String,
     password: &String,
     app_id: i32,
     redirect_to: Option<String>,
 ) -> Result<impl IntoResponse, AuthError> {
-    // Check if missing credentials
-    if email.is_empty() || password.is_empty() {
+    if mail.is_empty() || password.is_empty() {
         return Err(AuthError::MissingCredentials);
     }
 
-    // Select the user with this email
-    let query_result =
-        sqlx::query("SELECT id, name, encrypted_password FROM users WHERE email = $1")
-            .bind(email)
+    let (user_id, user_name, encrypted_password): (Uuid, String, String) =
+        sqlx::query_as("SELECT id, name, encrypted_password FROM users WHERE mail = $1")
+            .bind(mail)
             .fetch_optional(&state.db_pool)
             .await
             .map_err(|error| {
                 error!("{:?}", error);
                 AuthError::DatabaseError
-            })?;
+            })?
+            .ok_or(AuthError::UserNotExisting)?;
 
-    // Check if there is a user selected
-    if let Some(row) = query_result {
-        // Get the user data
-        let user_id = row.get::<Uuid, &str>("id");
-        let user_name = row.get::<String, &str>("name");
-        let encrypted_password = row.get::<String, &str>("encrypted_password");
-
-        // Check password
-        if verify_encrypted_text(password, &encrypted_password).map_err(|error| {
+    let password_is_not_ok =
+        !verify_encrypted_text(password, &encrypted_password).map_err(|error| {
             error!("{:?}", error);
             AuthError::CryptoError
-        })? {
-            // Generate JWT
-            let jwt = IdTokenClaims::new(
-                state,
-                user_id,
-                user_name,
-                email.to_string(),
-                state.authenticator_app.jwt_seconds_to_expire.clone(),
-            )
-            .encode(state.authenticator_app.jwt_secret.clone())?;
+        })?;
 
-            // Return Redirect with cookie containing the session_id
-            Ok(create_session_into_response(
-                cookies,
-                jwt,
-                App::select_app_or_authenticator(&state, app_id)
-                    .await
-                    .redirect_to_another_endpoint(redirect_to),
-            ))
-        }
-        // Wrong Password
-        else {
-            Err(AuthError::WrongCredentials)
-        }
+    if password_is_not_ok {
+        return Err(AuthError::WrongCredentials);
     }
-    // No user found
-    else {
-        Err(AuthError::UserNotExisting)
-    }
+
+    let id_token_claims = IdTokenClaims::new(
+        state,
+        user_id,
+        user_name,
+        mail.to_string(),
+        state.authenticator_app.jwt_seconds_to_expire.clone(),
+    );
+
+    let id_token = id_token_claims.encode(state.authenticator_app.jwt_secret.clone())?;
+
+    let redirect_response = App::select_app_or_authenticator(&state, app_id)
+        .await
+        .redirect_to_another_endpoint(redirect_to);
+
+    let redirect_with_id_session_cookie =
+        create_session_into_response(cookies, id_token, redirect_response);
+
+    Ok(redirect_with_id_session_cookie)
 }

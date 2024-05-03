@@ -18,13 +18,13 @@ use axum::{
 use shuttle_runtime::{CustomError, SecretStore};
 use sqlx::PgPool;
 use tower_http::services::{ServeDir, ServeFile};
-use utils::email::AppMailer;
+use utils::mail::AppMailer;
 
 /// App state
 /// Data that can be used in the entire app
 #[derive(Clone, Debug)]
 pub struct AppState {
-    owner_email: String,
+    owner_mail: String,
     authenticator_app: App,
     db_pool: PgPool,
     mailer: AppMailer,
@@ -55,21 +55,18 @@ async fn http_server(
     db_pool: PgPool,
     #[shuttle_runtime::Secrets] secrets: SecretStore,
 ) -> shuttle_axum::ShuttleAxum {
-    // Init or update the database (migrations)
     sqlx::migrate!()
         .run(&db_pool)
         .await
         .map_err(CustomError::new)?;
 
-    // Set the app state
     let state = AppState {
-        owner_email: secrets.get("OWNER_EMAIL").unwrap(),
+        owner_mail: secrets.get("OWNER_MAIL").unwrap(),
         authenticator_app: App::init_authenticator_app(&secrets),
         db_pool,
         mailer: AppMailer::new(&secrets),
     };
 
-    // Define router with state for http server
     let router = Router::new()
         .route("/", get(general::public::get))
         .route("/home", get(general::home::get))

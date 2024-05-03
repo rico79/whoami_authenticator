@@ -13,7 +13,6 @@ use tracing::log::error;
 
 use crate::{auth::IdTokenClaims, AppState};
 
-/// Error types
 #[derive(Debug, Deserialize)]
 pub enum AppError {
     DatabaseError,
@@ -21,7 +20,6 @@ pub enum AppError {
     NotFound,
 }
 
-/// App struct
 #[derive(Clone, Debug, FromRow)]
 pub struct App {
     pub id: i32,
@@ -37,7 +35,6 @@ pub struct App {
 }
 
 impl App {
-    /// New app
     pub fn new(owner_id: &Uuid) -> Self {
         Self {
             id: -1,
@@ -53,12 +50,10 @@ impl App {
         }
     }
 
-    /// Check if new app
     pub fn is_new(&self) -> bool {
         self.id < 0
     }
 
-    /// Authenticator app
     pub fn init_authenticator_app(secrets: &SecretStore) -> Self {
         Self {
             id: 0,
@@ -76,12 +71,10 @@ impl App {
         }
     }
 
-    /// Check if app is authenticator
     pub fn is_authenticator_app(&self) -> bool {
         self.id == 0
     }
 
-    /// Check if user is owner
     pub fn is_owned_by(&self, user_id: Uuid) -> bool {
         match self.owner_id.clone() {
             Some(owner_id) => owner_id == user_id.clone(),
@@ -89,27 +82,20 @@ impl App {
         }
     }
 
-    /// Check if this user email can update the app
-    /// Can update if owner
-    /// NOTE that authenticator app can not be updated
     pub fn can_be_updated_by(&self, user_id: Uuid) -> bool {
         !self.is_authenticator_app() && self.is_owned_by(user_id)
     }
 
-    /// Get app from id
-    /// If no app is found return authenticator app
     pub async fn select_app_or_authenticator(state: &AppState, app_id: i32) -> Self {
         Self::select_from_app_id(state, app_id)
             .await
             .unwrap_or(state.authenticator_app.clone())
     }
 
-    /// Create redirect url
     pub fn redirect_url(&self) -> String {
         self.url_to_endpoint(&self.redirect_endpoint)
     }
 
-    /// Create redirect url
     fn url_to_endpoint(&self, endpoint: &String) -> String {
         match (self.base_url.ends_with("/"), endpoint.starts_with("/")) {
             (true, true) => format!("{}{}", self.base_url, &endpoint[1..]),
@@ -119,14 +105,10 @@ impl App {
         }
     }
 
-    /// App redirection
-    /// Redirect to the app after signin
     pub fn redirect_to(&self) -> Redirect {
         self.redirect_to_another_endpoint(None)
     }
 
-    /// App redirection
-    /// Redirect to the app after signin
     pub fn redirect_to_another_endpoint(&self, another_endpoint: Option<String>) -> Redirect {
         match another_endpoint {
             Some(endpoint) => Redirect::to(&self.url_to_endpoint(&endpoint)),
@@ -134,7 +116,6 @@ impl App {
         }
     }
 
-    /// Create logo url
     pub fn logo_url(&self) -> String {
         if self.base_url.len() > 0 && self.logo_endpoint.len() > 0 {
             format!("{}{}", &self.base_url, &self.logo_endpoint)
@@ -143,14 +124,10 @@ impl App {
         }
     }
 
-    /// Select all apps owned by the user
-    /// Get user_id
-    /// return list of apps
     pub async fn select_own_apps(
         state: &AppState,
         claims: &IdTokenClaims,
     ) -> Result<Vec<Self>, AppError> {
-        // Get apps from database
         let mut apps: Vec<App> = sqlx::query_as(
             "SELECT 
                 id, 
@@ -179,24 +156,22 @@ impl App {
             AppError::DatabaseError
         })?;
 
-        // If claims email is the mailer email then add authenticator app
-        if claims.email == state.owner_email {
+        let user_is_authenticator_app_owner = claims.mail == state.owner_mail;
+
+        if user_is_authenticator_app_owner {
             apps.push(state.authenticator_app.clone())
         }
 
         Ok(apps)
     }
 
-    /// Select app
-    /// Get app_id
-    /// return app
     pub async fn select_from_app_id(state: &AppState, app_id: i32) -> Result<Self, AppError> {
-        // Check if authenticator
-        if app_id == state.authenticator_app.id {
+        let is_authenticator_app = app_id == state.authenticator_app.id;
+
+        if is_authenticator_app {
             return Ok(state.authenticator_app.clone());
         }
 
-        // Get app from database
         let app: App = sqlx::query_as(
             "SELECT 
                 id, 
@@ -224,20 +199,13 @@ impl App {
         Ok(app)
     }
 
-    /// Save app
-    /// return app
     pub async fn save(&self, state: &AppState, claims: &IdTokenClaims) -> Result<Self, AppError> {
-        // Check if authenticator
         if self.is_authenticator_app() {
             return Ok(state.authenticator_app.clone());
         }
 
-        // Check if missing Data
-
-        // Save the App
         if self.is_new() {
-            // Insert if new
-            let app: App = sqlx::query_as(
+            let inserted_app: App = sqlx::query_as(
                 "INSERT INTO apps (
                     name, 
                     description, 
@@ -275,10 +243,9 @@ impl App {
                 AppError::NotFound
             })?;
 
-            Ok(app)
+            Ok(inserted_app)
         } else {
-            // Update otherwise
-            let app: App = sqlx::query_as(
+            let updated_app: App = sqlx::query_as(
                 "UPDATE apps
                 SET
                     name = $1, 
@@ -317,7 +284,7 @@ impl App {
                 AppError::NotFound
             })?;
 
-            Ok(app)
+            Ok(updated_app)
         }
     }
 }
