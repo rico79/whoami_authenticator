@@ -18,8 +18,8 @@ use tracing::error;
 
 use crate::{
     apps::App,
-    auth::{signin, AuthError},
-    general::message::{Level, MessageBlock},
+    auth::signin,
+    general::{message::{Level, MessageBlock}, AuthenticatorError},
     users::User,
     AppState,
 };
@@ -43,7 +43,7 @@ impl JWTGenerator {
         Self::new(state, &state.authenticator_app, user)
     }
 
-    pub fn generate_id_token(&self) -> Result<(String, IdTokenClaims), AuthError> {
+    pub fn generate_id_token(&self) -> Result<(String, IdTokenClaims), AuthenticatorError> {
         let now = Utc::now().timestamp();
 
         let expiration_time = now + i64::from(self.app.jwt_seconds_to_expire);
@@ -64,7 +64,7 @@ impl JWTGenerator {
         )
         .map_err(|error| {
             error!("{:?}", error);
-            AuthError::TokenCreationFailed
+            AuthenticatorError::TokenCreationFailed
         })?;
 
         Ok((generated_token, claims))
@@ -90,8 +90,8 @@ impl IdTokenClaims {
         Uuid::parse_str(&self.sub).unwrap()
     }
 
-    pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
-        let token = cookies.get("session_id").ok_or(AuthError::InvalidToken)?;
+    pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthenticatorError> {
+        let token = cookies.get("session_id").ok_or(AuthenticatorError::InvalidToken)?;
 
         Self::decode(
             token.value().to_string(),
@@ -99,7 +99,7 @@ impl IdTokenClaims {
         )
     }
 
-    pub fn decode(token: String, secret: String) -> Result<Self, AuthError> {
+    pub fn decode(token: String, secret: String) -> Result<Self, AuthenticatorError> {
         let decoded_token = decode::<IdTokenClaims>(
             &token,
             &DecodingKey::from_secret(secret.as_ref()),
@@ -110,7 +110,7 @@ impl IdTokenClaims {
                 ExpiredSignature => (),
                 _ => error!("{:?}", error),
             };
-            AuthError::InvalidToken
+            AuthenticatorError::InvalidToken
         })?;
 
         Ok(decoded_token.claims)
@@ -150,7 +150,7 @@ where
             signin::SigninPage::for_app_with_redirect_and_message(
                 state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
-                MessageBlock::closeable(Level::Error, "", &AuthError::InvalidToken.to_string()),
+                MessageBlock::closeable(Level::Error, "", &AuthenticatorError::InvalidToken.to_string()),
             )
         })?;
 

@@ -1,9 +1,6 @@
 pub mod confirm;
 pub mod profile;
 
-use std::fmt;
-
-use serde::Deserialize;
 use sqlx::{
     types::chrono::{DateTime, Local, NaiveDate},
     types::Uuid,
@@ -11,38 +8,12 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{utils::{crypto::{encrypt_text, verify_encrypted_text}, jwt::IdTokenClaims}, AppState};
-
-#[derive(Debug, Deserialize)]
-pub enum UserError {
-    DatabaseError,
-    CryptoError,
-    MissingInformation,
-    PasswordsDoNotMatch,
-    AlreadyExistingMail,
-    InvalidId,
-    InvalidBirthday,
-    NotFound,
-    MailConfirmationFailed,
-}
-
-impl fmt::Display for UserError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let message = match self {
-            UserError::DatabaseError => "Un problème est survenu, veuillez réessayer plus tard",
-            UserError::CryptoError => "Un problème est survenu, veuillez réessayer plus tard",
-            UserError::MissingInformation => "Veuillez remplir toutes les informations",
-            UserError::PasswordsDoNotMatch => "Veuillez taper le même mot de passe",
-            UserError::AlreadyExistingMail => "Un utilisateur a déjà ce mail",
-            UserError::InvalidId => "L'identifiant de l'utilisateur est invalide",
-            UserError::NotFound => "L'utilisateur est introuvable",
-            UserError::MailConfirmationFailed => "La confirmation du a échouée",
-            UserError::InvalidBirthday => "La date de naissance est incorrecte",
-        };
-
-        write!(f, "{}", message)
-    }
-}
+use crate::{
+    general::AuthenticatorError, utils::{
+        crypto::{encrypt_text, verify_encrypted_text},
+        jwt::IdTokenClaims,
+    }, AppState
+};
 
 #[derive(Clone, Debug, FromRow)]
 pub struct User {
@@ -57,14 +28,11 @@ pub struct User {
 }
 
 impl User {
-    pub fn password_match(&self, password: String) -> Result<bool, UserError> {
-        verify_encrypted_text(&password, &self.encrypted_password).map_err(|error| {
-            error!("{:?}", error);
-            UserError::CryptoError
-        })
+    pub fn password_match(&self, password: String) -> Result<bool, AuthenticatorError> {
+        verify_encrypted_text(&password, &self.encrypted_password)
     }
 
-    pub async fn select_from_id(state: &AppState, user_id: Uuid) -> Result<Self, UserError> {
+    pub async fn select_from_id(state: &AppState, user_id: Uuid) -> Result<Self, AuthenticatorError> {
         let user: User = sqlx::query_as(
             "SELECT 
                     id,
@@ -84,16 +52,13 @@ impl User {
         .await
         .map_err(|error| {
             error!("Selecting user from id {} -> {:?}", user_id, error);
-            UserError::NotFound
+            AuthenticatorError::UserNotFound
         })?;
 
         Ok(user)
     }
 
-    pub async fn select_from_mail(
-        state: &AppState,
-        mail: &String,
-    ) -> Result<Self, UserError> {
+    pub async fn select_from_mail(state: &AppState, mail: &String) -> Result<Self, AuthenticatorError> {
         let user: User = sqlx::query_as(
             "SELECT 
                     id,
@@ -113,7 +78,7 @@ impl User {
         .await
         .map_err(|error| {
             error!("Selecting user from mail {} -> {:?}", mail, error);
-            UserError::NotFound
+            AuthenticatorError::UserNotFound
         })?;
 
         Ok(user)
@@ -126,16 +91,16 @@ impl User {
         birthday: &String,
         avatar_url: &String,
         mail: &String,
-    ) -> Result<Self, UserError> {
+    ) -> Result<Self, AuthenticatorError> {
         let birthday_date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|error| {
             error!("Updating user {} -> {:?}", name, error);
-            UserError::InvalidBirthday
+            AuthenticatorError::InvalidBirthday
         })?;
 
         let now = Local::now().date_naive();
 
         if birthday_date > now {
-            return Err(UserError::InvalidBirthday);
+            return Err(AuthenticatorError::InvalidBirthday);
         }
 
         let user: User = sqlx::query_as(
@@ -168,15 +133,15 @@ impl User {
         .map_err(|error| match error {
             sqlx::Error::Database(error) => {
                 if error.is_unique_violation() {
-                    UserError::AlreadyExistingMail
+                    AuthenticatorError::AlreadyExistingMail
                 } else {
                     error!("Updating profile of {} -> {:?}", user_id, error);
-                    UserError::DatabaseError
+                    AuthenticatorError::DatabaseError
                 }
             }
             _ => {
                 error!("Updating profile of {} -> {:?}", user_id, error);
-                UserError::DatabaseError
+                AuthenticatorError::DatabaseError
             }
         })?;
 
@@ -188,19 +153,16 @@ impl User {
         user_id: &Uuid,
         password: &String,
         confirm_password: &String,
-    ) -> Result<bool, UserError> {
+    ) -> Result<bool, AuthenticatorError> {
         if password.is_empty() || confirm_password.is_empty() {
-            return Err(UserError::MissingInformation);
+            return Err(AuthenticatorError::MissingInformation);
         }
 
         if password != confirm_password {
-            return Err(UserError::PasswordsDoNotMatch);
+            return Err(AuthenticatorError::PasswordsDoNotMatch);
         }
 
-        let encrypted_password = encrypt_text(password).map_err(|error| {
-            error!("Updating password for user {} -> {:?}", user_id, error);
-            UserError::CryptoError
-        })?;
+        let encrypted_password = encrypt_text(password)?;
 
         let nb_of_password_updated =
             sqlx::query("UPDATE users SET encrypted_password = $1 WHERE id = $2")
@@ -210,21 +172,21 @@ impl User {
                 .await
                 .map_err(|error| {
                     error!("Updating password for user {} -> {:?}", user_id, error);
-                    UserError::NotFound
+                    AuthenticatorError::UserNotFound
                 })?
                 .rows_affected();
 
         Ok(nb_of_password_updated > 0)
     }
 
-    pub async fn confirm_mail(state: &AppState, token: &String) -> Result<String, UserError> {
+    pub async fn confirm_mail(state: &AppState, token: &String) -> Result<String, AuthenticatorError> {
         let claims = IdTokenClaims::decode(
             token.to_string(),
             state.authenticator_app.jwt_secret.clone(),
         )
         .map_err(|error| {
             error!("Confirming mail for token {} -> {:?}", token, error);
-            UserError::MailConfirmationFailed
+            AuthenticatorError::MailConfirmationFailed
         })?;
 
         let (confirmed_mail, mail_is_confirmed): (String, bool) = sqlx::query_as(
@@ -244,13 +206,13 @@ impl User {
         .await
         .map_err(|error| {
             error!("Confirming mail for mail {} -> {:?}", claims.mail, error);
-            UserError::NotFound
+            AuthenticatorError::UserNotFound
         })?;
 
         if mail_is_confirmed {
             Ok(confirmed_mail)
         } else {
-            Err(UserError::MailConfirmationFailed)
+            Err(AuthenticatorError::MailConfirmationFailed)
         }
     }
 
@@ -261,35 +223,32 @@ impl User {
         mail: &String,
         password: &String,
         confirm_password: &String,
-    ) -> Result<Self, UserError> {
+    ) -> Result<Self, AuthenticatorError> {
         if name.is_empty()
             || birthday.is_empty()
             || mail.is_empty()
             || password.is_empty()
             || confirm_password.is_empty()
         {
-            return Err(UserError::MissingInformation);
+            return Err(AuthenticatorError::MissingInformation);
         }
 
         let birthday_date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|error| {
             error!("Creating user {} -> {:?}", name, error);
-            UserError::InvalidBirthday
+            AuthenticatorError::InvalidBirthday
         })?;
 
         let now = Local::now().date_naive();
 
         if birthday_date > now {
-            return Err(UserError::InvalidBirthday);
+            return Err(AuthenticatorError::InvalidBirthday);
         }
 
         if password != confirm_password {
-            return Err(UserError::PasswordsDoNotMatch);
+            return Err(AuthenticatorError::PasswordsDoNotMatch);
         }
 
-        let encrypted_password = encrypt_text(password).map_err(|error| {
-            error!("Creating user {} -> {:?}", name, error);
-            UserError::CryptoError
-        })?;
+        let encrypted_password = encrypt_text(password)?;
 
         let created_user: User = sqlx::query_as(
             "INSERT INTO users (
@@ -318,15 +277,15 @@ impl User {
         .map_err(|error| match error {
             sqlx::Error::Database(error) => {
                 if error.is_unique_violation() {
-                    UserError::AlreadyExistingMail
+                    AuthenticatorError::AlreadyExistingMail
                 } else {
                     error!("Creating user {} -> {:?}", name, error);
-                    UserError::DatabaseError
+                    AuthenticatorError::DatabaseError
                 }
             }
             _ => {
                 error!("Creating user {} -> {:?}", name, error);
-                UserError::DatabaseError
+                AuthenticatorError::DatabaseError
             }
         })?;
 

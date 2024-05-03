@@ -4,16 +4,15 @@ use askama_axum::Template;
 use axum::extract::{Query, State};
 use serde::Deserialize;
 use sqlx::types::Uuid;
-use tracing::error;
 
 use crate::{
     apps::App,
-    general::message::{Level, MessageBlock},
+    general::{message::{Level, MessageBlock}, AuthenticatorError},
     utils::jwt::JWTGenerator,
     AppState,
 };
 
-use super::{User, UserError};
+use super::User;
 
 #[derive(Clone, Debug, Deserialize)]
 pub enum Action {
@@ -146,10 +145,10 @@ impl ConfirmationMail {
         )
     }
 
-    pub fn send(&self) -> Result<(), UserError> {
+    pub fn send(&self) -> Result<bool, AuthenticatorError> {
         let (id_token, _) = JWTGenerator::new(&self.state, &self.app, &self.user)
             .generate_id_token()
-            .map_err(|_| UserError::MailConfirmationFailed)?;
+            .map_err(|_| AuthenticatorError::MailConfirmationFailed)?;
 
         let validation_url = format!(
             "{}/confirm_mail?app_id={}&token={}",
@@ -172,23 +171,10 @@ En vous souhaitant une excellente journée !!
 
 L'équipe de Brouclean Softwares",self.user.name, self.app.name,validation_url);
 
-        let mail_potentially_sent = self.state.mailer.send_mail(
+        self.state.mailer.send_mail(
             format!("{} <{}>", self.user.name, self.user.mail),
             mail_subject,
             mail_body,
-        );
-
-        match mail_potentially_sent {
-            Ok(_) => Ok(()),
-
-            Err(error) => {
-                error!(
-                    "Sending mail confirmation to '{}' -> {:?}",
-                    self.user.mail, error
-                );
-
-                Err(UserError::MailConfirmationFailed)
-            }
-        }
+        )
     }
 }

@@ -1,6 +1,8 @@
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use shuttle_runtime::SecretStore;
 
+use crate::general::AuthenticatorError;
+
 #[derive(Clone, Debug)]
 pub struct AppMailer {
     from: String,
@@ -37,7 +39,7 @@ impl AppMailer {
         to: String,
         subject: String,
         body: String,
-    ) -> Result<<SmtpTransport as Transport>::Ok, <SmtpTransport as Transport>::Error> {
+    ) -> Result<bool, AuthenticatorError> {
         let mail = Message::builder()
             .from(self.from.parse().unwrap())
             .to(to.parse().unwrap())
@@ -45,6 +47,11 @@ impl AppMailer {
             .body(body)
             .unwrap();
 
-        self.mailer.send(&mail)
+        let _ = self.mailer.send(&mail).map_err(|error| {
+            tracing::error!("{}", error);
+            AuthenticatorError::MailNotSent
+        })?;
+
+        Ok(true)
     }
 }

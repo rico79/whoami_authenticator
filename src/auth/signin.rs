@@ -8,13 +8,13 @@ use serde::Deserialize;
 
 use crate::{
     apps::App,
-    general::message::{Level, MessageBlock},
+    general::{message::{Level, MessageBlock}, AuthenticatorError},
     users::User,
     utils::jwt::IdTokenClaims,
     AppState,
 };
 
-use super::{create_session_into_response, AuthError};
+use super::create_session_into_response;
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]
@@ -133,7 +133,7 @@ pub async fn post_handler(
             MessageBlock::closeable(
                 Level::Error,
                 "Connexion impossible",
-                &AuthError::WrongCredentials.to_string(),
+                &AuthenticatorError::WrongCredentials.to_string(),
             ),
         ));
     }

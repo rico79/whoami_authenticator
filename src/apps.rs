@@ -2,7 +2,6 @@ pub mod app;
 pub mod app_list;
 
 use axum::response::Redirect;
-use serde::Deserialize;
 use shuttle_runtime::SecretStore;
 use sqlx::{
     types::chrono::{DateTime, Local},
@@ -11,14 +10,7 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{utils::jwt::IdTokenClaims, AppState};
-
-#[derive(Debug, Deserialize)]
-pub enum AppError {
-    DatabaseError,
-    InvalidId,
-    NotFound,
-}
+use crate::{general::AuthenticatorError, utils::jwt::IdTokenClaims, AppState};
 
 #[derive(Clone, Debug, FromRow)]
 pub struct App {
@@ -127,7 +119,7 @@ impl App {
     pub async fn select_own_apps(
         state: &AppState,
         claims: &IdTokenClaims,
-    ) -> Result<Vec<Self>, AppError> {
+    ) -> Result<Vec<Self>, AuthenticatorError> {
         let mut apps: Vec<App> = sqlx::query_as(
             "SELECT 
                 id, 
@@ -153,7 +145,7 @@ impl App {
                 claims.user_id(),
                 error
             );
-            AppError::DatabaseError
+            AuthenticatorError::DatabaseError
         })?;
 
         let user_is_authenticator_app_owner = claims.mail == state.owner_mail;
@@ -165,7 +157,7 @@ impl App {
         Ok(apps)
     }
 
-    pub async fn select_from_app_id(state: &AppState, app_id: i32) -> Result<Self, AppError> {
+    pub async fn select_from_app_id(state: &AppState, app_id: i32) -> Result<Self, AuthenticatorError> {
         let is_authenticator_app = app_id == state.authenticator_app.id;
 
         if is_authenticator_app {
@@ -193,13 +185,13 @@ impl App {
         .await
         .map_err(|error| {
             error!("Selecting apps from id {} -> {:?}", app_id, error);
-            AppError::NotFound
+            AuthenticatorError::AppNotFound
         })?;
 
         Ok(app)
     }
 
-    pub async fn save(&self, state: &AppState, claims: &IdTokenClaims) -> Result<Self, AppError> {
+    pub async fn save(&self, state: &AppState, claims: &IdTokenClaims) -> Result<Self, AuthenticatorError> {
         if self.is_authenticator_app() {
             return Ok(state.authenticator_app.clone());
         }
@@ -240,7 +232,7 @@ impl App {
             .await
             .map_err(|error| {
                 error!("Inserting app {:?} -> {:?}", self, error);
-                AppError::NotFound
+                AuthenticatorError::AppNotFound
             })?;
 
             Ok(inserted_app)
@@ -281,7 +273,7 @@ impl App {
             .await
             .map_err(|error| {
                 error!("Updating app {:?} -> {:?}", self, error);
-                AppError::NotFound
+                AuthenticatorError::AppNotFound
             })?;
 
             Ok(updated_app)
