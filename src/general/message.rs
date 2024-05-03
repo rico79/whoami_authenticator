@@ -1,38 +1,62 @@
+use std::fmt;
+
 use askama::Template;
 
-/// Message Struct
-#[derive(Clone, Debug, Template)]
-#[template(path = "general/message.html")]
-pub struct MessageTemplate {
-    pub header: String,
-    pub level: String,
-    pub body: String,
-    pub closeable: bool,
+#[derive(Clone, Debug)]
+pub enum Level {
+    Success,
+    Error,
 }
 
-impl MessageTemplate {
-    /// Empty message
+impl fmt::Display for Level {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let message = match self {
+            Level::Success => "success",
+            Level::Error => "negative",
+        };
+
+        write!(f, "{}", message)
+    }
+}
+
+#[derive(Clone, Debug, Template)]
+#[template(path = "general/message_block.html")]
+pub struct MessageBlock {
+    header: String,
+    level: Level,
+    body: String,
+    is_closeable: bool,
+}
+
+impl MessageBlock {
     pub fn empty() -> Self {
-        Self::from("".to_owned(), "".to_owned(), "".to_owned(), false)
-    }
-
-    /// Check if empty
-    pub fn is_empty(&self) -> bool {
-        self.header.len() <= 0 && self.level.len() <= 0 && self.body.len() <= 0
-    }
-
-    /// From
-    pub fn from(header: String, level: String, body: String, closeable: bool) -> Self {
         Self {
-            header,
-            level,
-            body,
-            closeable,
+            header: "".to_owned(),
+            level: Level::Success,
+            body: "".to_owned(),
+            is_closeable: false,
         }
     }
 
-    /// From
-    pub fn from_body(level: String, body: String, closeable: bool) -> Self {
-        Self::from("".to_owned(), level, body, closeable)
+    pub fn closeable(level: Level, header: &str, body: &str) -> Self {
+        Self {
+            level,
+            header: header.to_owned(),
+            body: body.to_owned(),
+            is_closeable: true,
+        }
+    }
+
+    pub fn permanent(level: Level, header: &str, body: &str) -> Self {
+        Self {
+            level,
+            header: header.to_owned(),
+            body: body.to_owned(),
+            is_closeable: false,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.header.len() <= 0 && self.body.len() <= 0
     }
 }

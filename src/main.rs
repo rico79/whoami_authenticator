@@ -68,18 +68,28 @@ async fn http_server(
     };
 
     let router = Router::new()
-        .route("/", get(general::public::get))
-        .route("/home", get(general::home::get))
-        .route("/confirm", get(users::confirm::get))
-        .route("/signup", get(auth::signup::get).post(auth::signup::post))
-        .route("/signin", get(auth::signin::get).post(auth::signin::post))
-        .route("/signout", get(auth::signout::get))
+        .route("/", get(general::public::get_handler))
+        .route("/home", get(general::home::get_handler))
+        .route("/send_confirm", get(users::confirm::send_confirm_handler))
+        .route("/confirm_mail", get(users::confirm::confirm_mail_handler))
+        .route(
+            "/signup",
+            get(auth::signup::get_handler).post(auth::signup::post_handler),
+        )
+        .route(
+            "/signin",
+            get(auth::signin::get_handler).post(auth::signin::post_handler),
+        )
+        .route("/signout", get(auth::signout::get_handler))
         .route(
             "/profile",
-            get(users::profile::get).post(users::profile::update_profile),
+            get(users::profile::get_handler).post(users::profile::update_profile_handler),
         )
-        .route("/password", post(users::profile::update_password))
-        .route("/app", get(apps::app::get).post(apps::app::post))
+        .route("/password", post(users::profile::update_password_handler))
+        .route(
+            "/app",
+            get(apps::app::get_handler).post(apps::app::post_handler),
+        )
         .nest_service("/assets", ServeDir::new("assets"))
         .nest_service("/favicon.ico", ServeFile::new("assets/favicon.ico"))
         .with_state(state);

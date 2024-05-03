@@ -2,9 +2,8 @@ use askama::Template;
 
 use crate::auth::IdTokenClaims;
 
-/// Message Struct
 #[derive(Clone, Debug, Template)]
-#[template(path = "general/navbar.html")]
-pub struct NavBarTemplate {
+#[template(path = "general/navbar_block.html")]
+pub struct NavBarBlock {
     pub claims: Option<IdTokenClaims>,
 }

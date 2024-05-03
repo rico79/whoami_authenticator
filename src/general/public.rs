@@ -1,13 +1,9 @@
 use askama_axum::{IntoResponse, Template};
 
-/// Template
-/// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "general/public.html")]
-pub struct PageTemplate {}
+#[template(path = "general/public_page.html")]
+pub struct PublicPage {}
 
-/// Get handler
-/// Returns the page using the dedicated HTML template
-pub async fn get() -> impl IntoResponse {
-    PageTemplate {}
+pub async fn get_handler() -> impl IntoResponse {
+    PublicPage {}
 }

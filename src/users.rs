@@ -29,8 +29,8 @@ pub enum UserError {
 impl fmt::Display for UserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let message = match self {
-            UserError::DatabaseError => "Veuillez réessayer plus tard",
-            UserError::CryptoError => "Veuillez réessayer plus tard",
+            UserError::DatabaseError => "Un problème est survenu, veuillez réessayer plus tard",
+            UserError::CryptoError => "Un problème est survenu, veuillez réessayer plus tard",
             UserError::MissingInformation => "Veuillez remplir toutes les informations",
             UserError::PasswordsDoNotMatch => "Veuillez taper le même mot de passe",
             UserError::AlreadyExisting => "L'utilisateur existe déjà",
@@ -56,9 +56,6 @@ pub struct User {
 }
 
 impl User {
-    /// Get user data from database
-    /// Get user id
-    /// Return the User
     pub async fn select_from_id(state: &AppState, user_id: Uuid) -> Result<Self, UserError> {
         let user: User = sqlx::query_as(
             "SELECT 
@@ -85,9 +82,6 @@ impl User {
         Ok(user)
     }
 
-    /// Update user profile in database
-    /// Get user id
-    /// Return the User
     pub async fn update_profile(
         state: &AppState,
         user_id: &Uuid,
@@ -141,15 +135,12 @@ impl User {
         Ok(user)
     }
 
-    /// Update user password in database
-    /// Get user id
-    /// Return the User
     pub async fn update_password(
         state: &AppState,
         user_id: &Uuid,
         password: &String,
         confirm_password: &String,
-    ) -> Result<Self, UserError> {
+    ) -> Result<bool, UserError> {
         if password.is_empty() || confirm_password.is_empty() {
             return Err(UserError::MissingInformation);
         }
@@ -163,36 +154,21 @@ impl User {
             UserError::CryptoError
         })?;
 
-        let updated_user: User = sqlx::query_as(
-            "UPDATE users 
-                SET 
-                    encrypted_password = $1 
-                WHERE 
-                    id = $2 
-                RETURNING 
-                    id,
-                    name, 
-                    birthday,
-                    avatar_url,
-                    mail, 
-                    mail_is_confirmed, 
-                    created_at",
-        )
-        .bind(encrypted_password)
-        .bind(user_id)
-        .fetch_one(&state.db_pool)
-        .await
-        .map_err(|error| {
-            error!("Updating password for user {} -> {:?}", user_id, error);
-            UserError::NotFound
-        })?;
+        let nb_of_password_updated =
+            sqlx::query("UPDATE users SET encrypted_password = $1 WHERE id = $2")
+                .bind(encrypted_password)
+                .bind(user_id)
+                .execute(&state.db_pool)
+                .await
+                .map_err(|error| {
+                    error!("Updating password for user {} -> {:?}", user_id, error);
+                    UserError::NotFound
+                })?
+                .rows_affected();
 
-        Ok(updated_user)
+        Ok(nb_of_password_updated > 0)
     }
 
-    /// Confirm mail into database for the user
-    /// Get user id
-    /// Return mail confirmed
     pub async fn confirm_mail(state: &AppState, token: &String) -> Result<String, UserError> {
         let claims = IdTokenClaims::decode(
             token.to_string(),
@@ -230,10 +206,6 @@ impl User {
         }
     }
 
-    /// Create User from signup into database
-    /// Use the cookies and the App state
-    /// Get name, birthday, mail, password and password confirmation
-    /// Return user_id
     pub async fn create(
         state: &AppState,
         name: &String,
@@ -256,7 +228,7 @@ impl User {
             UserError::InvalidBirthday
         })?;
 
-        let  now = Local::now().date_naive();
+        let now = Local::now().date_naive();
 
         if birthday_date > now {
             return Err(UserError::InvalidBirthday);

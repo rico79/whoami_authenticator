@@ -2,30 +2,29 @@ use askama_axum::{IntoResponse, Template};
 use axum::extract::State;
 
 use crate::{
-    apps::{app_list::AppListTemplate, App},
+    apps::{app_list::AppListBlock, App},
     auth::IdTokenClaims,
     AppState,
 };
 
-use super::navbar::NavBarTemplate;
+use super::navbar::NavBarBlock;
 
-/// Template
-/// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "general/home.html")]
-pub struct PageTemplate {
-    navbar: NavBarTemplate,
-    own_apps: AppListTemplate,
+#[template(path = "general/home_page.html")]
+pub struct HomePage {
+    navbar: NavBarBlock,
+    own_apps: AppListBlock,
 }
 
-/// Get handler
-/// Returns the page using the dedicated HTML template
-pub async fn get(claims: IdTokenClaims, State(state): State<AppState>) -> impl IntoResponse {
-    PageTemplate {
-        navbar: NavBarTemplate {
+pub async fn get_handler(
+    claims: IdTokenClaims,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    HomePage {
+        navbar: NavBarBlock {
             claims: Some(claims.clone()),
         },
-        own_apps: AppListTemplate {
+        own_apps: AppListBlock {
             apps: App::select_own_apps(&state, &claims).await.unwrap(),
             can_add: true,
             back_url: "/home".to_owned(),

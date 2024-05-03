@@ -9,25 +9,22 @@ use sqlx::types::chrono::Local;
 
 use crate::{
     auth::IdTokenClaims,
-    general::{go_back::GoBackTemplate, navbar::NavBarTemplate},
+    general::{go_back::GoBackButton, navbar::NavBarBlock},
     AppState,
 };
 
 use super::App;
 
-/// Template
-/// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "apps/app.html")]
-pub struct PageTemplate {
-    navbar: NavBarTemplate,
+#[template(path = "apps/app_page.html")]
+pub struct AppPage {
+    navbar: NavBarBlock,
     app: Option<App>,
     read_only: bool,
-    go_back: GoBackTemplate,
+    go_back: GoBackButton,
 }
 
-impl PageTemplate {
-    /// print read only
+impl AppPage {
     pub fn print_read_only(&self) -> String {
         if self.read_only {
             "readonly".to_owned()
@@ -36,78 +33,67 @@ impl PageTemplate {
         }
     }
 
-    /// Init page from App
-    fn from(claims: &IdTokenClaims, app: Option<App>, back_url: String) -> Result<Self, Self> {
+    fn from_app(claims: &IdTokenClaims, app: Option<App>, back_url: String) -> Result<Self, Self> {
         match app {
-            // Existing app
-            Some(app) => Ok(PageTemplate {
-                navbar: NavBarTemplate {
+            Some(app) => Ok(AppPage {
+                navbar: NavBarBlock {
                     claims: Some(claims.clone()),
                 },
                 app: Some(app.clone()),
                 read_only: !app.can_be_updated_by(claims.user_id()),
-                go_back: GoBackTemplate { back_url },
+                go_back: GoBackButton { back_url },
             }),
-            // No app means new app to create
-            None => Ok(PageTemplate {
-                navbar: NavBarTemplate {
+
+            None => Ok(AppPage {
+                navbar: NavBarBlock {
                     claims: Some(claims.clone()),
                 },
                 app: app.clone(),
                 read_only: !App::new(&claims.user_id()).can_be_updated_by(claims.user_id()),
-                go_back: GoBackTemplate { back_url },
+                go_back: GoBackButton { back_url },
             }),
         }
     }
 
-    /// Init page from app_id
-    async fn from_id(
+    async fn from_app_id(
         state: &AppState,
         claims: &IdTokenClaims,
         app_id: Option<i32>,
         back_url: String,
     ) -> Result<Self, Self> {
         match app_id {
-            // Get app from id
-            Some(app_id) => Self::from(
+            Some(app_id) => Self::from_app(
                 claims,
                 App::select_from_app_id(&state, app_id).await.ok(),
                 back_url,
             ),
 
-            // No id means new app to create
-            None => Err(PageTemplate {
-                navbar: NavBarTemplate {
+            None => Err(AppPage {
+                navbar: NavBarBlock {
                     claims: Some(claims.clone()),
                 },
                 app: Some(App::new(&claims.user_id())),
                 read_only: false,
-                go_back: GoBackTemplate { back_url },
+                go_back: GoBackButton { back_url },
             }),
         }
     }
 }
 
-/// Query parameters definition
-/// HTTP parameters used for the get Handler
 #[derive(Deserialize)]
 pub struct QueryParams {
     id: Option<i32>,
     back_url: String,
 }
 
-/// Get handler
-/// Returns the page using the dedicated HTML template
-pub async fn get(
+pub async fn get_handler(
     claims: IdTokenClaims,
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    PageTemplate::from_id(&state, &claims, params.id, params.back_url).await
+    AppPage::from_app_id(&state, &claims, params.id, params.back_url).await
 }
 
-/// Post form
-/// Data expected from the form
 #[derive(Deserialize)]
 pub struct PostForm {
     id: i32,
@@ -121,16 +107,14 @@ pub struct PostForm {
     back_url: String,
 }
 
-/// Post handler
-/// Returns the page using the dedicated HTML template
-pub async fn post(
+pub async fn post_handler(
     claims: IdTokenClaims,
     State(state): State<AppState>,
     Form(form): Form<PostForm>,
 ) -> impl IntoResponse {
     // Check if read only (= name is missing)
     match form.name {
-        Some(name) => PageTemplate::from(
+        Some(name) => AppPage::from_app(
             &claims,
             App {
                 id: form.id,
@@ -149,6 +133,6 @@ pub async fn post(
             .ok(),
             form.back_url,
         ),
-        None => PageTemplate::from_id(&state, &claims, Some(form.id), form.back_url).await,
+        None => AppPage::from_app_id(&state, &claims, Some(form.id), form.back_url).await,
     }
 }

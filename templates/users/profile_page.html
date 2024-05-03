@@ -20,9 +20,7 @@
             <h4 class="ui dividing header">Informations générales</h4>
 
             <div class="ui container">
-                <div id="password_message" class="ui container">
-                    {{ profile_message|escape("none") }}
-                </div>
+                {{ profile_message|escape("none") }}
 
                 <form class="ui form" method="POST" action="/profile">
                     <div class="ui error message"></div>
@@ -64,7 +62,7 @@
                             {% endif %}
                         </label>
                         <div class="ui left icon input">
-                            <input class="input" type="mail" name="mail" value="{{ profile.mail }}"
+                            <input class="input" type="email" name="mail" value="{{ profile.mail }}"
                                 placeholder="ex: yoda@dagobah.edu" />
                             <i class="envelope icon"></i>
                         </div>
@@ -72,10 +70,10 @@
 
                     {% if ! profile.mail_is_confirmed %}
                     <div class="ui negative message">
-                        L'mail n'a pas été confirmé, veuillez vérifier votre boite
+                        Le mail n'a pas été confirmé, veuillez vérifier votre boite
                         <a class="ui negative basic button" href="{{ confirm_send_url }}" target="_blank">
                             <i class="paper plane icon"></i>
-                            Renvoyer la confirmation d'mail
+                            Renvoyer la confirmation du mail
                         </a>
                     </div>
                     {% endif %}

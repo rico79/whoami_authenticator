@@ -14,20 +14,7 @@
     <div class="ui hidden divider"></div>
 
     <div class="ui container">
-        {% if error.len() > 0 %}
-        <div class="ui negative message">
-            <i class="close icon"></i>
-            <div class="header">
-                Inscription impossible
-            </div>
-            {{ error }}
-        </div>
-        <script>
-            $('.message .close').on('click', function () {
-                $(this).closest('.message').transition('fade');
-            });
-        </script>
-        {% endif %}
+        {{ message|escape("none") }}
 
         <form class="ui form" method="POST" action="/signup">
             <div class="ui error message"></div>
@@ -57,7 +44,7 @@
             <div class="field">
                 <label class="label">Mail</label>
                 <div class="ui left icon input">
-                    <input class="input" type="mail" name="mail" value="{{ mail }}"
+                    <input class="input" type="email" name="mail" value="{{ mail }}"
                         placeholder="ex: yoda@dagobah.edu" />
                     <i class="envelope icon"></i>
                 </div>

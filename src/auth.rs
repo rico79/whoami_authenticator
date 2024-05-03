@@ -2,6 +2,7 @@ pub mod signin;
 pub mod signout;
 pub mod signup;
 
+use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Display;
 
@@ -26,6 +27,8 @@ use sqlx::types::Uuid;
 use tracing::log::error;
 
 use crate::apps::App;
+use crate::general::message::Level;
+use crate::general::message::MessageBlock;
 use crate::utils::crypto::verify_encrypted_text;
 use crate::AppState;
 
@@ -40,7 +43,24 @@ pub enum AuthError {
     InvalidToken,
 }
 
-/// IdTokenClaims struct
+impl fmt::Display for AuthError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let message = match self {
+            AuthError::DatabaseError => "Un problème est survenu, veuillez réessayer plus tard",
+            AuthError::CryptoError => "Un problème est survenu, veuillez réessayer plus tard",
+            AuthError::UserNotExisting => "L'utilisateur est inconnu",
+            AuthError::WrongCredentials => "Les données de connexion sont incorrectes",
+            AuthError::MissingCredentials => "Veuillez remplir votre mail et votre mot de passe",
+            AuthError::TokenCreationFailed => {
+                "Un problème est survenu, veuillez réessayer plus tard"
+            }
+            AuthError::InvalidToken => "",
+        };
+
+        write!(f, "{}", message)
+    }
+}
+
 /// sub = subject -> user unique id
 /// iss = issuer -> company name of the auth server
 /// iat = issued at -> date of the token generation
@@ -48,11 +68,11 @@ pub enum AuthError {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IdTokenClaims {
     sub: String,
-    pub name: String,
-    pub mail: String,
     iss: String,
     iat: i64,
     exp: i64,
+    pub name: String,
+    pub mail: String,
 }
 
 impl IdTokenClaims {
@@ -81,9 +101,6 @@ impl IdTokenClaims {
         }
     }
 
-    /// Get claims from cookies
-    /// Get the app state and cookie jar
-    /// return claims
     pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthError> {
         let token = cookies.get("session_id").ok_or(AuthError::InvalidToken)?;
 
@@ -93,7 +110,6 @@ impl IdTokenClaims {
         )
     }
 
-    /// Generate an encoded JSON Web Token
     pub fn encode(&self, secret: String) -> Result<String, AuthError> {
         encode(
             &Header::default(),
@@ -106,7 +122,6 @@ impl IdTokenClaims {
         })
     }
 
-    /// Decode JSON Web Token
     pub fn decode(token: String, secret: String) -> Result<Self, AuthError> {
         let decoded_token = decode::<IdTokenClaims>(
             &token,
@@ -143,7 +158,7 @@ where
     AppState: FromRef<S>,
     S: Send + Sync + Debug,
 {
-    type Rejection = signin::PageTemplate;
+    type Rejection = signin::SigninPage;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let state = parts
@@ -157,29 +172,31 @@ where
 
         let cookie_jar = parts.extract::<CookieJar>().await.map_err(|error| {
             error!("{:?}", error);
-            signin::PageTemplate::from(
+            signin::SigninPage::from(
                 &state,
                 None,
                 None,
-                Some(AuthError::InvalidToken),
                 Some(request_uri.to_string()),
+                MessageBlock::closeable(
+                    Level::Error,
+                    "",
+                    &AuthError::InvalidToken.to_string(),
+                ),
             )
         })?;
 
         Self::get_from_cookies(&state, &cookie_jar).map_err(|error| {
-            signin::PageTemplate::from(
+            signin::SigninPage::from(
                 &state,
                 None,
                 None,
-                Some(error),
                 Some(request_uri.to_string()),
+                MessageBlock::closeable(Level::Error, "", &error.to_string()),
             )
         })
     }
 }
 
-/// Remove session id from cookies
-/// Then redirect to an url
 pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
     (
         cookies.remove(Cookie::from("session_id")),
@@ -187,10 +204,6 @@ pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> imp
     )
 }
 
-/// Create session id in cookies if user credentials are Ok
-/// Then redirect to an url
-/// Use the cookies and jwt
-/// Return response
 pub fn create_session_into_response(
     cookies: CookieJar,
     jwt: String,
@@ -199,12 +212,7 @@ pub fn create_session_into_response(
     (cookies.add(Cookie::new("session_id", jwt)), response)
 }
 
-/// Create session id in cookies if user credentials are Ok
-/// Then redirect to an url
-/// Use the cookies and the App state
-/// Get mail and password and the url for redirect
-/// Return session id wich is a JWT or an AuthError
-pub async fn create_session_from_credentials_and_redirect(
+pub async fn create_session_from_credentials_and_redirect_response(
     cookies: CookieJar,
     state: &AppState,
     mail: &String,

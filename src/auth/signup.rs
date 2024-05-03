@@ -8,83 +8,72 @@ use serde::Deserialize;
 
 use crate::{
     apps::App,
-    users::{confirm::MailConfirmation, User, UserError},
+    general::message::{Level, MessageBlock},
+    users::{confirm::ConfirmationMail, User},
     AppState,
 };
 
-use super::create_session_from_credentials_and_redirect;
+use super::create_session_from_credentials_and_redirect_response;
 
-/// Template
-/// HTML page definition with dynamic data
 #[derive(Template)]
-#[template(path = "auth/signup.html")]
-pub struct PageTemplate {
+#[template(path = "auth/signup_page.html")]
+pub struct SignupPage {
     name: String,
     birthday: String,
     mail: String,
-    error: String,
     app: App,
+    message: MessageBlock,
 }
 
-impl PageTemplate {
-    /// Generate page from data
+impl SignupPage {
     pub fn from(
         name: Option<String>,
         birthday: Option<String>,
         mail: Option<String>,
         app: App,
-        error: Option<UserError>,
+        message: MessageBlock,
     ) -> Self {
-        PageTemplate {
-            error: error.map_or("".to_owned(), |error| error.to_string()),
+        SignupPage {
             name: name.unwrap_or("".to_owned()),
             birthday: birthday.unwrap_or("".to_owned()),
             mail: mail.unwrap_or("".to_owned()),
             app,
+            message,
         }
     }
 
-    /// Generate page from query params
     pub fn from_query(params: QueryParams, app: App) -> Self {
         Self::from(
             params.name,
             params.birthday,
             params.mail,
             app,
-            params.error,
+            MessageBlock::empty(),
         )
     }
 }
 
-/// Query parameters definition
-/// HTTP parameters used for the get Handler
 #[derive(Deserialize)]
 pub struct QueryParams {
     name: Option<String>,
     birthday: Option<String>,
     mail: Option<String>,
     app_id: Option<i32>,
-    error: Option<UserError>,
 }
 
-/// Get handler
-/// Returns the page using the dedicated HTML template
-pub async fn get(
+pub async fn get_handler(
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    // Get app to connect to
     let app = App::select_app_or_authenticator(
         &state,
         params.app_id.unwrap_or(state.authenticator_app.id),
     )
     .await;
 
-    PageTemplate::from_query(params, app)
+    SignupPage::from_query(params, app)
 }
 
-/// Signup form
-/// Data expected from the signup form in order to create the user
 #[derive(Deserialize)]
 pub struct SignupForm {
     name: String,
@@ -95,18 +84,14 @@ pub struct SignupForm {
     app_id: i32,
 }
 
-/// Post handler
-/// Process the signup form to create the user and send a confirmation mail
-pub async fn post(
+pub async fn post_handler(
     cookies: CookieJar,
     State(state): State<AppState>,
     Form(form): Form<SignupForm>,
-) -> Result<impl IntoResponse, PageTemplate> {
-    // Get App
+) -> Result<impl IntoResponse, SignupPage> {
     let app = App::select_app_or_authenticator(&state, form.app_id).await;
 
-    // Create user and get user_id generated
-    let user = User::create(
+    let created_user = User::create(
         &state,
         &form.name,
         &form.birthday,
@@ -116,20 +101,18 @@ pub async fn post(
     )
     .await
     .map_err(|error| {
-        PageTemplate::from(
+        SignupPage::from(
             Some(form.name.clone()),
             Some(form.birthday.clone()),
             Some(form.mail.clone()),
             app.clone(),
-            Some(error),
+            MessageBlock::closeable(Level::Error, "Inscription impossible", &error.to_string()),
         )
     })?;
 
-    // Send confirmation mail
-    let _ = MailConfirmation::from(&state, user.clone(), app.clone()).send();
+    let _ = ConfirmationMail::from(&state, created_user.clone(), app.clone()).send();
 
-    // Connect the user and redirect
-    if let Ok(response) = create_session_from_credentials_and_redirect(
+    if let Ok(redirect_with_session) = create_session_from_credentials_and_redirect_response(
         cookies,
         &state,
         &form.mail,
@@ -139,7 +122,7 @@ pub async fn post(
     )
     .await
     {
-        Ok(response.into_response())
+        Ok(redirect_with_session.into_response())
     } else {
         Ok(app.redirect_to().into_response())
     }
