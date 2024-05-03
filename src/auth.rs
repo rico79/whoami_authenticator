@@ -177,11 +177,7 @@ where
                 None,
                 None,
                 Some(request_uri.to_string()),
-                MessageBlock::closeable(
-                    Level::Error,
-                    "",
-                    &AuthError::InvalidToken.to_string(),
-                ),
+                MessageBlock::closeable(Level::Error, "", &AuthError::InvalidToken.to_string()),
             )
         })?;
 
