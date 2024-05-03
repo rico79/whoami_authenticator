@@ -106,11 +106,11 @@ impl App {
     }
 
     pub fn redirect_to(&self) -> Redirect {
-        self.redirect_to_another_endpoint(None)
+        self.redirect_to_endpoint(None)
     }
 
-    pub fn redirect_to_another_endpoint(&self, another_endpoint: Option<String>) -> Redirect {
-        match another_endpoint {
+    pub fn redirect_to_endpoint(&self, endpoint: Option<String>) -> Redirect {
+        match endpoint {
             Some(endpoint) => Redirect::to(&self.url_to_endpoint(&endpoint)),
             None => Redirect::to(&self.redirect_url()),
         }

@@ -170,20 +170,16 @@ where
 
         let cookie_jar = parts.extract::<CookieJar>().await.map_err(|error| {
             error!("{:?}", error);
-            signin::SigninPage::from(
-                &state,
-                None,
-                None,
+            signin::SigninPage::for_app_with_redirect_and_message(
+                state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
                 MessageBlock::closeable(Level::Error, "", &AuthError::InvalidToken.to_string()),
             )
         })?;
 
         Self::get_from_cookies(&state, &cookie_jar).map_err(|error| {
-            signin::SigninPage::from(
-                &state,
-                None,
-                None,
+            signin::SigninPage::for_app_with_redirect_and_message(
+                state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
                 MessageBlock::closeable(Level::Error, "", &error.to_string()),
             )
@@ -212,7 +208,7 @@ pub async fn create_session_from_credentials_and_redirect_response(
     mail: &String,
     password: &String,
     app_id: i32,
-    redirect_to: Option<String>,
+    requested_endpoint: Option<String>,
 ) -> Result<impl IntoResponse, AuthError> {
     if mail.is_empty() || password.is_empty() {
         return Err(AuthError::MissingCredentials);
@@ -251,7 +247,7 @@ pub async fn create_session_from_credentials_and_redirect_response(
 
     let redirect_response = App::select_app_or_authenticator(&state, app_id)
         .await
-        .redirect_to_another_endpoint(redirect_to);
+        .redirect_to_endpoint(requested_endpoint);
 
     let redirect_with_id_session_cookie =
         create_session_into_response(cookies, id_token, redirect_response);

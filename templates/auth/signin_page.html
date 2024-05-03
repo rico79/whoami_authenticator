@@ -17,8 +17,8 @@
         {{ message|escape("none") }}
 
         <form class="ui form" method="POST" action="/signin">
-            {% if let Some(redirect) = redirect_to %}
-            <input type="hidden" name="redirect_to" value="{{ redirect }}" />
+            {% if let Some(requested_endpoint) = requested_endpoint %}
+            <input type="hidden" name="requested_endpoint" value="{{ requested_endpoint }}" />
             {% endif %}
 
             <div class="ui error message"></div>
