@@ -9,7 +9,7 @@ use crate::{
         message::{Level, MessageBlock},
         navbar::NavBarBlock,
     },
-    utils::jwt::{IdTokenClaims, JWTGenerator},
+    utils::jwt::{IdTokenClaims, JsonWebToken},
     AppState,
 };
 
@@ -91,8 +91,7 @@ pub async fn update_profile_handler(
 
     match potentially_updated_user {
         Ok(updated_user) => {
-            let id_token =
-                JWTGenerator::for_authenticator(&state, &updated_user).generate_id_token();
+            let id_token = JsonWebToken::for_authenticator(&state).generate_id_token(&updated_user);
 
             if let Ok((id_token, claims)) = id_token {
                 (

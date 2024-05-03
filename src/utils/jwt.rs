@@ -18,7 +18,7 @@ use tracing::error;
 
 use crate::{
     apps::App,
-    auth::signin,
+    auth::{extract_id_token_claims_from_session, signin},
     general::{
         message::{Level, MessageBlock},
         AuthenticatorError,
@@ -27,34 +27,35 @@ use crate::{
     AppState,
 };
 
-pub struct JWTGenerator {
+pub struct JsonWebToken {
     authenticator_app: App,
     app: App,
-    user: User,
 }
 
-impl JWTGenerator {
-    pub fn new(state: &AppState, app: &App, user: &User) -> Self {
+impl JsonWebToken {
+    pub fn for_app(state: &AppState, app: &App) -> Self {
         Self {
             authenticator_app: state.authenticator_app.clone(),
             app: app.clone(),
-            user: user.clone(),
         }
     }
 
-    pub fn for_authenticator(state: &AppState, user: &User) -> Self {
-        Self::new(state, &state.authenticator_app, user)
+    pub fn for_authenticator(state: &AppState) -> Self {
+        Self::for_app(state, &state.authenticator_app)
     }
 
-    pub fn generate_id_token(&self) -> Result<(String, IdTokenClaims), AuthenticatorError> {
+    pub fn generate_id_token(
+        &self,
+        user: &User,
+    ) -> Result<(String, IdTokenClaims), AuthenticatorError> {
         let now = Utc::now().timestamp();
 
         let expiration_time = now + i64::from(self.app.jwt_seconds_to_expire);
 
         let claims = IdTokenClaims {
-            sub: self.user.id.to_string(),
-            name: self.user.name.clone(),
-            mail: self.user.mail.clone(),
+            sub: user.id.to_string(),
+            name: user.name.clone(),
+            mail: user.mail.clone(),
             iss: self.authenticator_app.base_url.clone(),
             iat: now,
             exp: expiration_time,
@@ -71,6 +72,23 @@ impl JWTGenerator {
         })?;
 
         Ok((generated_token, claims))
+    }
+
+    pub fn extract_id_token(&self, token: String) -> Result<IdTokenClaims, AuthenticatorError> {
+        let decoded_token = decode::<IdTokenClaims>(
+            &token,
+            &DecodingKey::from_secret(self.app.jwt_secret.as_ref()),
+            &Validation::default(),
+        )
+        .map_err(|error| {
+            match error.kind() {
+                ExpiredSignature => (),
+                _ => error!("{:?}", error),
+            };
+            AuthenticatorError::InvalidToken
+        })?;
+
+        Ok(decoded_token.claims)
     }
 }
 
@@ -91,37 +109,6 @@ pub struct IdTokenClaims {
 impl IdTokenClaims {
     pub fn user_id(&self) -> Uuid {
         Uuid::parse_str(&self.sub).unwrap()
-    }
-
-    pub fn get_from_cookies(
-        state: &AppState,
-        cookies: &CookieJar,
-    ) -> Result<Self, AuthenticatorError> {
-        let token = cookies
-            .get("session_id")
-            .ok_or(AuthenticatorError::InvalidToken)?;
-
-        Self::decode(
-            token.value().to_string(),
-            state.authenticator_app.jwt_secret.clone(),
-        )
-    }
-
-    pub fn decode(token: String, secret: String) -> Result<Self, AuthenticatorError> {
-        let decoded_token = decode::<IdTokenClaims>(
-            &token,
-            &DecodingKey::from_secret(secret.as_ref()),
-            &Validation::default(),
-        )
-        .map_err(|error| {
-            match error.kind() {
-                ExpiredSignature => (),
-                _ => error!("{:?}", error),
-            };
-            AuthenticatorError::InvalidToken
-        })?;
-
-        Ok(decoded_token.claims)
     }
 }
 
@@ -166,12 +153,14 @@ where
             )
         })?;
 
-        Self::get_from_cookies(&state, &cookie_jar).map_err(|error| {
-            signin::SigninPage::for_app_with_redirect_and_message(
-                state.authenticator_app.clone(),
-                Some(request_uri.to_string()),
-                MessageBlock::closeable(Level::Error, "", &error.to_string()),
-            )
-        })
+        extract_id_token_claims_from_session(&state, &cookie_jar, &state.authenticator_app).map_err(
+            |error| {
+                signin::SigninPage::for_app_with_redirect_and_message(
+                    state.authenticator_app.clone(),
+                    Some(request_uri.to_string()),
+                    MessageBlock::closeable(Level::Error, "", &error.to_string()),
+                )
+            },
+        )
     }
 }

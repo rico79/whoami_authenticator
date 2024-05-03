@@ -10,7 +10,7 @@ use axum_extra::extract::CookieJar;
 use crate::apps::App;
 use crate::general::AuthenticatorError;
 use crate::users::User;
-use crate::utils::jwt::JWTGenerator;
+use crate::utils::jwt::{IdTokenClaims, JsonWebToken};
 use crate::AppState;
 
 pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
@@ -20,6 +20,18 @@ pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> imp
     )
 }
 
+pub fn extract_id_token_claims_from_session(
+    state: &AppState,
+    cookies: &CookieJar,
+    app: &App,
+) -> Result<IdTokenClaims, AuthenticatorError> {
+    let token = cookies
+        .get("session_id")
+        .ok_or(AuthenticatorError::InvalidToken)?;
+
+    JsonWebToken::for_app(state, app).extract_id_token(token.value().to_string())
+}
+
 pub async fn create_session_into_response(
     cookies: CookieJar,
     state: &AppState,
@@ -27,7 +39,7 @@ pub async fn create_session_into_response(
     app_to_connect: &App,
     requested_endpoint: Option<String>,
 ) -> Result<impl IntoResponse, AuthenticatorError> {
-    let (id_token, _) = JWTGenerator::new(state, app_to_connect, user).generate_id_token()?;
+    let (id_token, _) = JsonWebToken::for_app(state, app_to_connect).generate_id_token(user)?;
 
     let redirect = app_to_connect
         .redirect_to_endpoint(requested_endpoint)

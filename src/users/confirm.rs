@@ -11,7 +11,7 @@ use crate::{
         message::{Level, MessageBlock},
         AuthenticatorError,
     },
-    utils::jwt::JWTGenerator,
+    utils::jwt::JsonWebToken,
     AppState,
 };
 
@@ -107,7 +107,7 @@ pub async fn confirm_mail_handler(
         app: app.clone(),
     };
 
-    let confirmed_mail = User::confirm_mail(&state, &params.token.unwrap_or_default())
+    let confirmed_mail = User::confirm_mail(&state, &app, params.token.unwrap_or_default())
         .await
         .map_err(|_| error_response.clone())?;
 
@@ -149,8 +149,8 @@ impl ConfirmationMail {
     }
 
     pub fn send(&self) -> Result<bool, AuthenticatorError> {
-        let (id_token, _) = JWTGenerator::new(&self.state, &self.app, &self.user)
-            .generate_id_token()
+        let (id_token, _) = JsonWebToken::for_app(&self.state, &self.app)
+            .generate_id_token(&self.user)
             .map_err(|_| AuthenticatorError::MailConfirmationFailed)?;
 
         let validation_url = format!(

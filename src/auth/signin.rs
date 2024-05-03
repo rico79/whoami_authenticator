@@ -13,11 +13,10 @@ use crate::{
         AuthenticatorError,
     },
     users::User,
-    utils::jwt::IdTokenClaims,
     AppState,
 };
 
-use super::create_session_into_response;
+use super::{create_session_into_response, extract_id_token_claims_from_session};
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]
@@ -83,7 +82,8 @@ pub async fn get_handler(
     )
     .await;
 
-    let already_connected = IdTokenClaims::get_from_cookies(&state, &cookies).is_ok();
+    let already_connected =
+        extract_id_token_claims_from_session(&state, &cookies, &app_to_connect_to).is_ok();
 
     if already_connected {
         app_to_connect_to

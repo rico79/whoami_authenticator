@@ -9,10 +9,11 @@ use sqlx::{
 use tracing::log::error;
 
 use crate::{
+    apps::App,
     general::AuthenticatorError,
     utils::{
         crypto::{encrypt_text, verify_encrypted_text},
-        jwt::IdTokenClaims,
+        jwt::JsonWebToken,
     },
     AppState,
 };
@@ -189,16 +190,10 @@ impl User {
 
     pub async fn confirm_mail(
         state: &AppState,
-        token: &String,
+        app: &App,
+        token: String,
     ) -> Result<String, AuthenticatorError> {
-        let claims = IdTokenClaims::decode(
-            token.to_string(),
-            state.authenticator_app.jwt_secret.clone(),
-        )
-        .map_err(|error| {
-            error!("Confirming mail for token {} -> {:?}", token, error);
-            AuthenticatorError::MailConfirmationFailed
-        })?;
+        let claims = JsonWebToken::for_app(state, app).extract_id_token(token)?;
 
         let (confirmed_mail, mail_is_confirmed): (String, bool) = sqlx::query_as(
             "UPDATE users 
