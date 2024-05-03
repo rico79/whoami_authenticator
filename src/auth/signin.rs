@@ -16,7 +16,7 @@ use crate::{
     AppState,
 };
 
-use super::{create_session_into_response, extract_id_token_claims_from_session};
+use super::{extract_id_token_claims, put_new_id_token_into_response};
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]
@@ -82,8 +82,7 @@ pub async fn get_handler(
     )
     .await;
 
-    let already_connected =
-        extract_id_token_claims_from_session(&state, &cookies, &app_to_connect_to).is_ok();
+    let already_connected = extract_id_token_claims(&state, &cookies, &app_to_connect_to).is_ok();
 
     if already_connected {
         app_to_connect_to
@@ -141,14 +140,13 @@ pub async fn post_handler(
         ));
     }
 
-    create_session_into_response(
+    put_new_id_token_into_response(
         cookies,
         &state,
         &user,
         &app_to_connect,
         form.requested_endpoint.clone(),
     )
-    .await
     .map_err(|error| {
         SigninPage::for_app_from_form_with_message(
             app_to_connect,

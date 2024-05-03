@@ -1,5 +1,4 @@
 use core::fmt::Debug;
-use std::fmt::Display;
 
 use axum::{
     async_trait,
@@ -18,7 +17,7 @@ use tracing::error;
 
 use crate::{
     apps::App,
-    auth::{extract_id_token_claims_from_session, signin},
+    auth::{extract_id_token_claims, signin},
     general::{
         message::{Level, MessageBlock},
         AuthenticatorError,
@@ -112,16 +111,6 @@ impl IdTokenClaims {
     }
 }
 
-impl Display for IdTokenClaims {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "User Id: {} - Name: {} - Mail: {} - Issuing company: {}",
-            self.sub, self.name, self.mail, self.iss
-        )
-    }
-}
-
 #[async_trait]
 impl<S> FromRequestParts<S> for IdTokenClaims
 where
@@ -153,14 +142,12 @@ where
             )
         })?;
 
-        extract_id_token_claims_from_session(&state, &cookie_jar, &state.authenticator_app).map_err(
-            |error| {
-                signin::SigninPage::for_app_with_redirect_and_message(
-                    state.authenticator_app.clone(),
-                    Some(request_uri.to_string()),
-                    MessageBlock::closeable(Level::Error, "", &error.to_string()),
-                )
-            },
-        )
+        extract_id_token_claims(&state, &cookie_jar, &state.authenticator_app).map_err(|error| {
+            signin::SigninPage::for_app_with_redirect_and_message(
+                state.authenticator_app.clone(),
+                Some(request_uri.to_string()),
+                MessageBlock::closeable(Level::Error, "", &error.to_string()),
+            )
+        })
     }
 }

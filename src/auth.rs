@@ -13,26 +13,26 @@ use crate::users::User;
 use crate::utils::jwt::{IdTokenClaims, JsonWebToken};
 use crate::AppState;
 
-pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
+pub fn remove_id_token_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
     (
-        cookies.remove(Cookie::from("session_id")),
+        cookies.remove(Cookie::from("id_token")),
         Redirect::to(redirect_to),
     )
 }
 
-pub fn extract_id_token_claims_from_session(
+pub fn extract_id_token_claims(
     state: &AppState,
     cookies: &CookieJar,
     app: &App,
 ) -> Result<IdTokenClaims, AuthenticatorError> {
     let token = cookies
-        .get("session_id")
+        .get("id_token")
         .ok_or(AuthenticatorError::InvalidToken)?;
 
     JsonWebToken::for_app(state, app).extract_id_token(token.value().to_string())
 }
 
-pub async fn create_session_into_response(
+pub fn put_new_id_token_into_response(
     cookies: CookieJar,
     state: &AppState,
     user: &User,
@@ -45,7 +45,7 @@ pub async fn create_session_into_response(
         .redirect_to_endpoint(requested_endpoint)
         .clone();
 
-    let response_with_session_cookie = (cookies.add(Cookie::new("session_id", id_token)), redirect);
+    let response_with_session_cookie = (cookies.add(Cookie::new("id_token", id_token)), redirect);
 
     Ok(response_with_session_cookie)
 }
