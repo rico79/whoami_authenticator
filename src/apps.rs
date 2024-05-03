@@ -157,7 +157,10 @@ impl App {
         Ok(apps)
     }
 
-    pub async fn select_from_app_id(state: &AppState, app_id: i32) -> Result<Self, AuthenticatorError> {
+    pub async fn select_from_app_id(
+        state: &AppState,
+        app_id: i32,
+    ) -> Result<Self, AuthenticatorError> {
         let is_authenticator_app = app_id == state.authenticator_app.id;
 
         if is_authenticator_app {
@@ -191,7 +194,11 @@ impl App {
         Ok(app)
     }
 
-    pub async fn save(&self, state: &AppState, claims: &IdTokenClaims) -> Result<Self, AuthenticatorError> {
+    pub async fn save(
+        &self,
+        state: &AppState,
+        claims: &IdTokenClaims,
+    ) -> Result<Self, AuthenticatorError> {
         if self.is_authenticator_app() {
             return Ok(state.authenticator_app.clone());
         }

@@ -7,7 +7,10 @@ use sqlx::types::Uuid;
 
 use crate::{
     apps::App,
-    general::{message::{Level, MessageBlock}, AuthenticatorError},
+    general::{
+        message::{Level, MessageBlock},
+        AuthenticatorError,
+    },
     utils::jwt::JWTGenerator,
     AppState,
 };

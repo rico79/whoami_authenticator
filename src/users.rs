@@ -9,10 +9,12 @@ use sqlx::{
 use tracing::log::error;
 
 use crate::{
-    general::AuthenticatorError, utils::{
+    general::AuthenticatorError,
+    utils::{
         crypto::{encrypt_text, verify_encrypted_text},
         jwt::IdTokenClaims,
-    }, AppState
+    },
+    AppState,
 };
 
 #[derive(Clone, Debug, FromRow)]
@@ -32,7 +34,10 @@ impl User {
         verify_encrypted_text(&password, &self.encrypted_password)
     }
 
-    pub async fn select_from_id(state: &AppState, user_id: Uuid) -> Result<Self, AuthenticatorError> {
+    pub async fn select_from_id(
+        state: &AppState,
+        user_id: Uuid,
+    ) -> Result<Self, AuthenticatorError> {
         let user: User = sqlx::query_as(
             "SELECT 
                     id,
@@ -58,7 +63,10 @@ impl User {
         Ok(user)
     }
 
-    pub async fn select_from_mail(state: &AppState, mail: &String) -> Result<Self, AuthenticatorError> {
+    pub async fn select_from_mail(
+        state: &AppState,
+        mail: &String,
+    ) -> Result<Self, AuthenticatorError> {
         let user: User = sqlx::query_as(
             "SELECT 
                     id,
@@ -179,7 +187,10 @@ impl User {
         Ok(nb_of_password_updated > 0)
     }
 
-    pub async fn confirm_mail(state: &AppState, token: &String) -> Result<String, AuthenticatorError> {
+    pub async fn confirm_mail(
+        state: &AppState,
+        token: &String,
+    ) -> Result<String, AuthenticatorError> {
         let claims = IdTokenClaims::decode(
             token.to_string(),
             state.authenticator_app.jwt_secret.clone(),

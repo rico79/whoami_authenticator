@@ -19,7 +19,10 @@ use tracing::error;
 use crate::{
     apps::App,
     auth::signin,
-    general::{message::{Level, MessageBlock}, AuthenticatorError},
+    general::{
+        message::{Level, MessageBlock},
+        AuthenticatorError,
+    },
     users::User,
     AppState,
 };
@@ -90,8 +93,13 @@ impl IdTokenClaims {
         Uuid::parse_str(&self.sub).unwrap()
     }
 
-    pub fn get_from_cookies(state: &AppState, cookies: &CookieJar) -> Result<Self, AuthenticatorError> {
-        let token = cookies.get("session_id").ok_or(AuthenticatorError::InvalidToken)?;
+    pub fn get_from_cookies(
+        state: &AppState,
+        cookies: &CookieJar,
+    ) -> Result<Self, AuthenticatorError> {
+        let token = cookies
+            .get("session_id")
+            .ok_or(AuthenticatorError::InvalidToken)?;
 
         Self::decode(
             token.value().to_string(),
@@ -150,7 +158,11 @@ where
             signin::SigninPage::for_app_with_redirect_and_message(
                 state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
-                MessageBlock::closeable(Level::Error, "", &AuthenticatorError::InvalidToken.to_string()),
+                MessageBlock::closeable(
+                    Level::Error,
+                    "",
+                    &AuthenticatorError::InvalidToken.to_string(),
+                ),
             )
         })?;
 

@@ -8,7 +8,10 @@ use serde::Deserialize;
 
 use crate::{
     apps::App,
-    general::{message::{Level, MessageBlock}, AuthenticatorError},
+    general::{
+        message::{Level, MessageBlock},
+        AuthenticatorError,
+    },
     users::User,
     utils::jwt::IdTokenClaims,
     AppState,
