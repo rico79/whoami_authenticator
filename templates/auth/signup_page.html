@@ -1,89 +1,99 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style type="text/css">
+    body>.grid {
+        height: 100%;
+    }
+
+    .column {
+        max-width: 400px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="ui main container">
-    <img class="ui centered tiny image" src="{{ app.logo_url() }}">
-
-    <h2 class="ui center aligned text header">
-        {{ app.name }}
-        <div class="sub header">
-            Inscrivez vous!
+<div class="ui middle aligned center aligned grid">
+    <div class="left aligned column">
+        <div class="ui center aligned container">
+            <img class="ui centered tiny image" src="{{ app.logo_url() }}">
+            <h2 class="ui center aligned text header">
+                {{ app.name }}
+            </h2>
         </div>
-    </h2>
 
-    <div class="ui hidden divider"></div>
+        <div class="ui container">
+            {{ message|escape("none") }}
 
-    <div class="ui container">
-        {{ message|escape("none") }}
+            <form class="ui form" method="POST" action="/signup">
+                <div class="ui error message"></div>
 
-        <form class="ui form" method="POST" action="/signup">
-            <div class="ui error message"></div>
-
-            <div class="field">
-                <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
-            </div>
-
-            <div class="two fields">
                 <div class="field">
-                    <label>Nom</label>
-                    <div class="ui left icon input">
-                        <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
-                        <i class="user icon"></i>
+                    <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
+                </div>
+
+                <div class="two fields">
+                    <div class="field">
+                        <label>Nom</label>
+                        <div class="ui left icon input">
+                            <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
+                            <i class="user icon"></i>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Date de Naissance</label>
+                        <div class="ui left icon input">
+                            <input class="input" type="date" name="birthday" value="{{ birthday }}" />
+                            <i class="calendar icon"></i>
+                        </div>
                     </div>
                 </div>
 
                 <div class="field">
-                    <label>Date de Naissance</label>
+                    <label class="label">Mail</label>
                     <div class="ui left icon input">
-                        <input class="input" type="date" name="birthday" value="{{ birthday }}" />
-                        <i class="calendar icon"></i>
+                        <input class="input" type="email" name="mail" value="{{ mail }}"
+                            placeholder="ex: yoda@dagobah.edu" />
+                        <i class="envelope icon"></i>
                     </div>
                 </div>
-            </div>
 
-            <div class="field">
-                <label class="label">Mail</label>
-                <div class="ui left icon input">
-                    <input class="input" type="email" name="mail" value="{{ mail }}"
-                        placeholder="ex: yoda@dagobah.edu" />
-                    <i class="envelope icon"></i>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">Mot de passe</label>
-                <div class="ui left icon input">
-                    <input class="input" type="password" name="password" placeholder="********" />
-                    <i class="lock icon"></i>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">Confirmez le mot de passe</label>
-                <div class="ui left icon input">
-                    <input class="input" type="password" name="confirm_password" placeholder="********" />
-                    <i class="redo icon"></i>
-                </div>
-            </div>
-
-            <div class="ui center aligned basic segment">
-                <button class="ui primary button">
-                    S'inscrire
-                </button>
-                <a class="ui button" href="/">
-                    Annuler
-                </a>
-
-                <div class="ui horizontal divider">
-                    Ou
+                <div class="field">
+                    <label class="label">Mot de passe</label>
+                    <div class="ui left icon input">
+                        <input class="input" type="password" name="password" placeholder="********" />
+                        <i class="lock icon"></i>
+                    </div>
                 </div>
 
-                <a class="ui big button" href="/signin">
-                    <i class="sign-in icon"></i>
-                    Se connecter
-                </a>
-            </div>
-        </form>
+                <div class="field">
+                    <label class="label">Confirmez le mot de passe</label>
+                    <div class="ui left icon input">
+                        <input class="input" type="password" name="confirm_password" placeholder="********" />
+                        <i class="redo icon"></i>
+                    </div>
+                </div>
+
+                <div class="ui center aligned basic segment">
+                    <button class="ui primary button">
+                        S'inscrire
+                    </button>
+                    <a class="ui button" href="/">
+                        Annuler
+                    </a>
+
+                    <div class="ui horizontal divider">
+                        Ou
+                    </div>
+
+                    <a class="ui big button" href="/signin">
+                        <i class="sign-in icon"></i>
+                        Se connecter
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

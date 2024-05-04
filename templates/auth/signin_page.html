@@ -1,67 +1,77 @@
 {% extends "base.html" %}
 
+{% block head %}
+<style type="text/css">
+    body>.grid {
+        height: 100%;
+    }
+
+    .column {
+        max-width: 400px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="ui main container">
-    <img class="ui centered tiny image" src="{{ app.logo_url() }}">
-
-    <h2 class="ui center aligned text header">
-        {{ app.name }}
-        <div class="sub header">
-            Connectez vous!
+<div class="ui middle aligned center aligned grid">
+    <div class="left aligned column">
+        <div class="ui center aligned container">
+            <img class="ui centered tiny image" src="{{ app.logo_url() }}">
+            <h2 class="ui center aligned text header">
+                {{ app.name }}
+            </h2>
         </div>
-    </h2>
 
-    <div class="ui hidden divider"></div>
+        <div class="ui container">
+            {{ message|escape("none") }}
 
-    <div class="ui container">
-        {{ message|escape("none") }}
+            <form class="ui form" method="POST" action="/signin">
+                {% if let Some(requested_endpoint) = requested_endpoint %}
+                <input type="hidden" name="requested_endpoint" value="{{ requested_endpoint }}" />
+                {% endif %}
 
-        <form class="ui form" method="POST" action="/signin">
-            {% if let Some(requested_endpoint) = requested_endpoint %}
-            <input type="hidden" name="requested_endpoint" value="{{ requested_endpoint }}" />
-            {% endif %}
+                <div class="ui error message"></div>
 
-            <div class="ui error message"></div>
-
-            <div class="field">
-                <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
-            </div>
-
-            <div class="field">
-                <label class="label">Mail</label>
-                <div class="ui left icon input">
-                    <input class="input" type="email" name="mail" value="{{ mail }}"
-                        placeholder="ex: yoda@dagobah.edu" />
-                    <i class="envelope icon"></i>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">Mot de passe</label>
-                <div class="ui left icon input">
-                    <input class="input" type="password" name="password" placeholder="********" />
-                    <i class="lock icon"></i>
-                </div>
-            </div>
-
-            <div class="ui center aligned basic segment">
-                <button class="ui primary button">
-                    Se connecter
-                </button>
-                <a class="ui button" href="/">
-                    Annuler
-                </a>
-
-                <div class="ui horizontal divider">
-                    Ou
+                <div class="field">
+                    <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
                 </div>
 
-                <a class="ui big button" href="/signup">
-                    <i class="signup icon"></i>
-                    S'inscrire
-                </a>
-            </div>
-        </form>
+                <div class="field">
+                    <label class="label">Mail</label>
+                    <div class="ui left icon input">
+                        <input class="input" type="email" name="mail" value="{{ mail }}"
+                            placeholder="ex: yoda@dagobah.edu" />
+                        <i class="envelope icon"></i>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label">Mot de passe</label>
+                    <div class="ui left icon input">
+                        <input class="input" type="password" name="password" placeholder="********" />
+                        <i class="lock icon"></i>
+                    </div>
+                </div>
+
+                <div class="ui center aligned basic segment">
+                    <button class="ui primary button">
+                        Se connecter
+                    </button>
+                    <a class="ui button" href="/">
+                        Annuler
+                    </a>
+
+                    <div class="ui horizontal divider">
+                        Ou
+                    </div>
+
+                    <a class="ui big button" href="/signup">
+                        <i class="signup icon"></i>
+                        S'inscrire
+                    </a>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
