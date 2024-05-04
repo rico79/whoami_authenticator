@@ -2,8 +2,10 @@ pub mod confirm;
 pub mod profile;
 
 use sqlx::{
-    types::chrono::{DateTime, Local, NaiveDate},
-    types::Uuid,
+    types::{
+        time::{Date, OffsetDateTime},
+        Uuid,
+    },
     FromRow,
 };
 use tracing::log::error;
@@ -14,6 +16,7 @@ use crate::{
     utils::{
         crypto::{encrypt_text, verify_encrypted_text},
         jwt::TokenFactory,
+        time::HtmlDate,
     },
     AppState,
 };
@@ -22,11 +25,11 @@ use crate::{
 pub struct User {
     pub id: Uuid,
     pub name: String,
-    pub birthday: NaiveDate,
+    pub birthday: Date,
     pub avatar_url: String,
     pub mail: String,
     pub mail_is_confirmed: bool,
-    pub created_at: DateTime<Local>,
+    pub created_at: OffsetDateTime,
     encrypted_password: String,
 }
 
@@ -101,12 +104,9 @@ impl User {
         avatar_url: &String,
         mail: &String,
     ) -> Result<Self, AuthenticatorError> {
-        let birthday_date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|error| {
-            error!("Updating user {} -> {:?}", name, error);
-            AuthenticatorError::InvalidBirthday
-        })?;
+        let birthday_date: Date = HtmlDate::from(birthday).try_into()?;
 
-        let now = Local::now().date_naive();
+        let now = OffsetDateTime::now_utc().date();
 
         if birthday_date > now {
             return Err(AuthenticatorError::InvalidBirthday);
@@ -241,12 +241,9 @@ impl User {
             return Err(AuthenticatorError::MissingInformation);
         }
 
-        let birthday_date = NaiveDate::parse_from_str(birthday, "%Y-%m-%d").map_err(|error| {
-            error!("Creating user {} -> {:?}", name, error);
-            AuthenticatorError::InvalidBirthday
-        })?;
+        let birthday_date: Date = HtmlDate::from(birthday).try_into()?;
 
-        let now = Local::now().date_naive();
+        let now = OffsetDateTime::now_utc().date();
 
         if birthday_date > now {
             return Err(AuthenticatorError::InvalidBirthday);

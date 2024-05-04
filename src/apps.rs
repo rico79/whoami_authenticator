@@ -5,8 +5,7 @@ use axum::response::Redirect;
 use http::Uri;
 use shuttle_runtime::SecretStore;
 use sqlx::{
-    types::chrono::{DateTime, Local},
-    types::Uuid,
+    types::{time::OffsetDateTime, Uuid},
     FromRow,
 };
 use tracing::log::error;
@@ -23,7 +22,7 @@ pub struct App {
     logo_endpoint: String,
     pub jwt_secret: String,
     pub jwt_seconds_to_expire: i32,
-    pub created_at: DateTime<Local>,
+    pub created_at: OffsetDateTime,
     pub owner_id: Option<Uuid>,
 }
 
@@ -38,7 +37,7 @@ impl App {
             logo_endpoint: "".to_owned(),
             jwt_secret: "".to_owned(),
             jwt_seconds_to_expire: 0,
-            created_at: Local::now(),
+            created_at: OffsetDateTime::now_utc(),
             owner_id: Some(owner_id.clone()),
         }
     }
@@ -57,9 +56,7 @@ impl App {
             logo_endpoint: "/assets/images/logo.png".to_owned(),
             jwt_secret: secrets.get("JWT_SECRET").unwrap(),
             jwt_seconds_to_expire: secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),
-            created_at: DateTime::from_timestamp(1712899091, 0)
-                .unwrap_or_default()
-                .with_timezone(&Local),
+            created_at: OffsetDateTime::now_utc(),
             owner_id: None,
         }
     }

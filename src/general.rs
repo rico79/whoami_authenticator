@@ -27,6 +27,7 @@ pub enum AuthenticatorError {
     MailNotSent,
     AppNotFound,
     AppInvalidUri,
+    InvalidDate,
 }
 
 impl fmt::Display for AuthenticatorError {
@@ -57,6 +58,7 @@ impl fmt::Display for AuthenticatorError {
             AuthenticatorError::AppNotFound => "L'app est introuvable",
             AuthenticatorError::MailNotSent => "Mail non envoyé",
             AuthenticatorError::AppInvalidUri => "L'Url de l'application est invalide",
+            AuthenticatorError::InvalidDate => "Date invalide",
         };
 
         write!(f, "{}", message)

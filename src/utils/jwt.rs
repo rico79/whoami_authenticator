@@ -12,10 +12,8 @@ use jsonwebtoken::{
     Validation,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::types::{
-    chrono::{NaiveDate, Utc},
-    Uuid,
-};
+use sqlx::types::Uuid;
+use time::{Date, OffsetDateTime};
 use tracing::error;
 
 use crate::{
@@ -52,7 +50,7 @@ impl TokenFactory {
     }
 
     pub fn generate_id_token(&self, user: &User) -> Result<Token<IdClaims>, AuthenticatorError> {
-        let now = Utc::now().timestamp();
+        let now = OffsetDateTime::now_utc().unix_timestamp();
 
         let expiration_time = now + i64::from(self.app.jwt_seconds_to_expire);
 
@@ -61,7 +59,7 @@ impl TokenFactory {
             name: user.name.clone(),
             mail: user.mail.clone(),
             avatar: user.avatar_url.clone(),
-            birthday: user.birthday.clone(),
+            birthday: user.birthday.into(),
             iss: self.authenticator_app.base_url.clone(),
             aud: self.app.base_url.clone(),
             iat: now,
@@ -128,7 +126,7 @@ pub struct IdClaims {
     pub name: String,
     pub mail: String,
     pub avatar: String,
-    pub birthday: NaiveDate,
+    pub birthday: Date,
 }
 
 impl IdClaims {

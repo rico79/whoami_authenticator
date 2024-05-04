@@ -5,7 +5,7 @@ use axum::{
     Form,
 };
 use serde::Deserialize;
-use sqlx::types::chrono::Local;
+use time::OffsetDateTime;
 
 use crate::{
     general::{go_back::GoBackButton, navbar::NavBarBlock},
@@ -125,7 +125,7 @@ pub async fn post_handler(
                 logo_endpoint: form.logo_endpoint.unwrap_or("".to_owned()),
                 jwt_secret: form.jwt_secret.unwrap_or("".to_owned()),
                 jwt_seconds_to_expire: form.jwt_seconds_to_expire.unwrap_or(0),
-                created_at: Local::now(),
+                created_at: OffsetDateTime::now_utc(),
                 owner_id: Some(claims.user_id()),
             }
             .save(&state, &claims)

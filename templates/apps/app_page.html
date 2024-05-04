@@ -11,7 +11,7 @@
     <h2 class="ui center aligned header">
         {{ app.name }}
         <div class="sub header">
-            Créée le {{ app.created_at.format("%d/%m/%Y à %H:%M") }}
+            Créée le {{ app.created_at.date() }}
         </div>
     </h2>
     {% else %}
