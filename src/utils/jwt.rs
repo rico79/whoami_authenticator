@@ -12,7 +12,7 @@ use jsonwebtoken::{
     Validation,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::types::{chrono::Utc, Uuid};
+use sqlx::types::{chrono::{NaiveDate, Utc}, Uuid};
 use tracing::error;
 
 use crate::{
@@ -57,6 +57,8 @@ impl TokenFactory {
             sub: user.id.to_string(),
             name: user.name.clone(),
             mail: user.mail.clone(),
+            avatar: user.avatar_url.clone(),
+            birthday: user.birthday.clone(),
             iss: self.authenticator_app.base_url.clone(),
             iat: now,
             exp: expiration_time,
@@ -105,12 +107,14 @@ impl TokenFactory {
 /// exp = expiration -> end date of the token
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IdClaims {
-    sub: String,
+    pub sub: String,
     iss: String,
     iat: i64,
     exp: i64,
     pub name: String,
     pub mail: String,
+    pub avatar: String,
+    pub birthday: NaiveDate,
 }
 
 impl IdClaims {
