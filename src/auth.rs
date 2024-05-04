@@ -13,20 +13,22 @@ use crate::users::User;
 use crate::utils::jwt::{IdClaims, TokenFactory};
 use crate::AppState;
 
-pub fn remove_id_token_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
+const SESSION_TOKEN: &str = "session_token";
+
+pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
     (
-        cookies.remove(Cookie::from("id_token")),
+        cookies.remove(Cookie::from(SESSION_TOKEN)),
         Redirect::to(redirect_to),
     )
 }
 
-pub fn extract_id_token_claims(
+pub fn extract_session_claims(
     state: &AppState,
     cookies: &CookieJar,
     app: &App,
 ) -> Result<IdClaims, AuthenticatorError> {
     let token = cookies
-        .get("id_token")
+        .get(SESSION_TOKEN)
         .ok_or(AuthenticatorError::InvalidToken)?;
 
     let token = TokenFactory::for_app(state, app).extract_id_token(token.value().to_string())?;
@@ -34,7 +36,7 @@ pub fn extract_id_token_claims(
     Ok(token.claims)
 }
 
-pub fn put_new_id_token_into_response(
+pub fn new_session_into_response(
     cookies: CookieJar,
     state: &AppState,
     user: &User,
@@ -49,7 +51,7 @@ pub fn put_new_id_token_into_response(
         .redirect_to_endpoint(requested_endpoint)
         .clone();
 
-    let response_with_session_cookie = (cookies.add(Cookie::new("id_token", id_token)), redirect);
+    let response_with_session_cookie = (cookies.add(Cookie::new(SESSION_TOKEN, id_token)), redirect);
 
     Ok(response_with_session_cookie)
 }

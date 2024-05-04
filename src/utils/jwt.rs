@@ -17,7 +17,7 @@ use tracing::error;
 
 use crate::{
     apps::App,
-    auth::{extract_id_token_claims, signin},
+    auth::{extract_session_claims, signin},
     general::{
         message::{Level, MessageBlock},
         AuthenticatorError,
@@ -154,7 +154,7 @@ where
             )
         })?;
 
-        extract_id_token_claims(&state, &cookie_jar, &state.authenticator_app).map_err(|error| {
+        extract_session_claims(&state, &cookie_jar, &state.authenticator_app).map_err(|error| {
             signin::SigninPage::for_app_with_redirect_and_message(
                 state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
