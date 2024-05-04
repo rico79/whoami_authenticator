@@ -48,10 +48,6 @@ pub fn new_session_into_response(
 
     let id_token = TokenFactory::for_app(state, app_to_connect).generate_id_token(user)?;
 
-    let redirect = app_to_connect
-        .redirect_to_endpoint(requested_endpoint)
-        .clone();
-
     let secure_domain = app_to_connect.domain()?;
 
     let cookie = Cookie::build((SESSION_TOKEN, id_token.token))
@@ -60,6 +56,10 @@ pub fn new_session_into_response(
         .secure(true)
         .http_only(true)
         .max_age(Duration::seconds(session_duration.into()));
+
+    let redirect = app_to_connect
+        .redirect_to_endpoint(requested_endpoint)
+        .clone();
 
     let response_with_session_cookie = (cookies.add(cookie), redirect);
 
