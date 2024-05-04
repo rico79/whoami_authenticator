@@ -9,7 +9,7 @@ use sqlx::types::chrono::Local;
 
 use crate::{
     general::{go_back::GoBackButton, navbar::NavBarBlock},
-    utils::jwt::IdTokenClaims,
+    utils::jwt::IdClaims,
     AppState,
 };
 
@@ -33,7 +33,7 @@ impl AppPage {
         }
     }
 
-    fn from_app(claims: &IdTokenClaims, app: Option<App>, back_url: String) -> Result<Self, Self> {
+    fn from_app(claims: &IdClaims, app: Option<App>, back_url: String) -> Result<Self, Self> {
         match app {
             Some(app) => Ok(AppPage {
                 navbar: NavBarBlock {
@@ -57,7 +57,7 @@ impl AppPage {
 
     async fn from_app_id(
         state: &AppState,
-        claims: &IdTokenClaims,
+        claims: &IdClaims,
         app_id: Option<i32>,
         back_url: String,
     ) -> Result<Self, Self> {
@@ -87,7 +87,7 @@ pub struct QueryParams {
 }
 
 pub async fn get_handler(
-    claims: IdTokenClaims,
+    claims: IdClaims,
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
@@ -108,7 +108,7 @@ pub struct PostForm {
 }
 
 pub async fn post_handler(
-    claims: IdTokenClaims,
+    claims: IdClaims,
     State(state): State<AppState>,
     Form(form): Form<PostForm>,
 ) -> impl IntoResponse {

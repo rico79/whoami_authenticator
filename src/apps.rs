@@ -10,7 +10,7 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{general::AuthenticatorError, utils::jwt::IdTokenClaims, AppState};
+use crate::{general::AuthenticatorError, utils::jwt::IdClaims, AppState};
 
 #[derive(Clone, Debug, FromRow)]
 pub struct App {
@@ -118,7 +118,7 @@ impl App {
 
     pub async fn select_own_apps(
         state: &AppState,
-        claims: &IdTokenClaims,
+        claims: &IdClaims,
     ) -> Result<Vec<Self>, AuthenticatorError> {
         let mut apps: Vec<App> = sqlx::query_as(
             "SELECT 
@@ -197,7 +197,7 @@ impl App {
     pub async fn save(
         &self,
         state: &AppState,
-        claims: &IdTokenClaims,
+        claims: &IdClaims,
     ) -> Result<Self, AuthenticatorError> {
         if self.is_authenticator_app() {
             return Ok(state.authenticator_app.clone());

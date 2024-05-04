@@ -13,7 +13,7 @@ use crate::{
     general::AuthenticatorError,
     utils::{
         crypto::{encrypt_text, verify_encrypted_text},
-        jwt::JsonWebToken,
+        jwt::TokenFactory,
     },
     AppState,
 };
@@ -193,7 +193,9 @@ impl User {
         app: &App,
         token: String,
     ) -> Result<String, AuthenticatorError> {
-        let claims = JsonWebToken::for_app(state, app).extract_id_token(token)?;
+        let claims = TokenFactory::for_app(state, app)
+            .extract_id_token(token)?
+            .claims;
 
         let (confirmed_mail, mail_is_confirmed): (String, bool) = sqlx::query_as(
             "UPDATE users 

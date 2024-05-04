@@ -11,7 +11,7 @@ use crate::{
         message::{Level, MessageBlock},
         AuthenticatorError,
     },
-    utils::jwt::JsonWebToken,
+    utils::jwt::TokenFactory,
     AppState,
 };
 
@@ -149,9 +149,10 @@ impl ConfirmationMail {
     }
 
     pub fn send(&self) -> Result<bool, AuthenticatorError> {
-        let (id_token, _) = JsonWebToken::for_app(&self.state, &self.app)
+        let id_token = TokenFactory::for_app(&self.state, &self.app)
             .generate_id_token(&self.user)
-            .map_err(|_| AuthenticatorError::MailConfirmationFailed)?;
+            .map_err(|_| AuthenticatorError::MailConfirmationFailed)?
+            .token;
 
         let validation_url = format!(
             "{}/confirm_mail?app_id={}&token={}",

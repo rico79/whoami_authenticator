@@ -3,7 +3,7 @@ use axum::extract::State;
 
 use crate::{
     apps::{app_list::AppListBlock, App},
-    utils::jwt::IdTokenClaims,
+    utils::jwt::IdClaims,
     AppState,
 };
 
@@ -16,10 +16,7 @@ pub struct HomePage {
     own_apps: AppListBlock,
 }
 
-pub async fn get_handler(
-    claims: IdTokenClaims,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn get_handler(claims: IdClaims, State(state): State<AppState>) -> impl IntoResponse {
     HomePage {
         navbar: NavBarBlock {
             claims: Some(claims.clone()),

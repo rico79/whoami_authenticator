@@ -26,12 +26,17 @@ use crate::{
     AppState,
 };
 
-pub struct JsonWebToken {
+pub struct Token<Claims> {
+    pub claims: Claims,
+    pub token: String,
+}
+
+pub struct TokenFactory {
     authenticator_app: App,
     app: App,
 }
 
-impl JsonWebToken {
+impl TokenFactory {
     pub fn for_app(state: &AppState, app: &App) -> Self {
         Self {
             authenticator_app: state.authenticator_app.clone(),
@@ -43,15 +48,12 @@ impl JsonWebToken {
         Self::for_app(state, &state.authenticator_app)
     }
 
-    pub fn generate_id_token(
-        &self,
-        user: &User,
-    ) -> Result<(String, IdTokenClaims), AuthenticatorError> {
+    pub fn generate_id_token(&self, user: &User) -> Result<Token<IdClaims>, AuthenticatorError> {
         let now = Utc::now().timestamp();
 
         let expiration_time = now + i64::from(self.app.jwt_seconds_to_expire);
 
-        let claims = IdTokenClaims {
+        let claims = IdClaims {
             sub: user.id.to_string(),
             name: user.name.clone(),
             mail: user.mail.clone(),
@@ -70,11 +72,14 @@ impl JsonWebToken {
             AuthenticatorError::TokenCreationFailed
         })?;
 
-        Ok((generated_token, claims))
+        Ok(Token {
+            claims,
+            token: generated_token,
+        })
     }
 
-    pub fn extract_id_token(&self, token: String) -> Result<IdTokenClaims, AuthenticatorError> {
-        let decoded_token = decode::<IdTokenClaims>(
+    pub fn extract_id_token(&self, token: String) -> Result<Token<IdClaims>, AuthenticatorError> {
+        let decoded_token = decode::<IdClaims>(
             &token,
             &DecodingKey::from_secret(self.app.jwt_secret.as_ref()),
             &Validation::default(),
@@ -87,7 +92,10 @@ impl JsonWebToken {
             AuthenticatorError::InvalidToken
         })?;
 
-        Ok(decoded_token.claims)
+        Ok(Token {
+            claims: decoded_token.claims,
+            token,
+        })
     }
 }
 
@@ -96,7 +104,7 @@ impl JsonWebToken {
 /// iat = issued at -> date of the token generation
 /// exp = expiration -> end date of the token
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct IdTokenClaims {
+pub struct IdClaims {
     sub: String,
     iss: String,
     iat: i64,
@@ -105,14 +113,14 @@ pub struct IdTokenClaims {
     pub mail: String,
 }
 
-impl IdTokenClaims {
+impl IdClaims {
     pub fn user_id(&self) -> Uuid {
         Uuid::parse_str(&self.sub).unwrap()
     }
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for IdTokenClaims
+impl<S> FromRequestParts<S> for IdClaims
 where
     AppState: FromRef<S>,
     S: Send + Sync + Debug,

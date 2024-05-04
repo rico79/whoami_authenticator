@@ -9,7 +9,7 @@ use crate::{
         message::{Level, MessageBlock},
         navbar::NavBarBlock,
     },
-    utils::jwt::{IdTokenClaims, JsonWebToken},
+    utils::jwt::{IdClaims, TokenFactory},
     AppState,
 };
 
@@ -29,7 +29,7 @@ pub struct ProfilePage {
 impl ProfilePage {
     pub async fn from(
         state: &AppState,
-        claims: IdTokenClaims,
+        claims: IdClaims,
         returned_user: Option<User>,
         profile_message: MessageBlock,
     ) -> Self {
@@ -58,10 +58,7 @@ impl ProfilePage {
     }
 }
 
-pub async fn get_handler(
-    claims: IdTokenClaims,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+pub async fn get_handler(claims: IdClaims, State(state): State<AppState>) -> impl IntoResponse {
     ProfilePage::from(&state, claims, None, MessageBlock::empty()).await
 }
 
@@ -75,7 +72,7 @@ pub struct ProfileForm {
 
 pub async fn update_profile_handler(
     cookies: CookieJar,
-    claims: IdTokenClaims,
+    claims: IdClaims,
     State(state): State<AppState>,
     Form(form): Form<ProfileForm>,
 ) -> impl IntoResponse {
@@ -91,13 +88,18 @@ pub async fn update_profile_handler(
 
     match potentially_updated_user {
         Ok(updated_user) => {
-            let id_token = JsonWebToken::for_authenticator(&state).generate_id_token(&updated_user);
+            let id_token = TokenFactory::for_authenticator(&state).generate_id_token(&updated_user);
 
-            if let Ok((id_token, claims)) = id_token {
+            if let Ok(id_token) = id_token {
                 (
-                    cookies.add(Cookie::new("session_id", id_token)),
-                    ProfilePage::from(&state, claims, Some(updated_user), MessageBlock::empty())
-                        .await,
+                    cookies.add(Cookie::new("session_id", id_token.token)),
+                    ProfilePage::from(
+                        &state,
+                        id_token.claims,
+                        Some(updated_user),
+                        MessageBlock::empty(),
+                    )
+                    .await,
                 )
                     .into_response()
             } else {
@@ -106,6 +108,7 @@ pub async fn update_profile_handler(
                     .into_response()
             }
         }
+
         Err(error) => ProfilePage::from(
             &state,
             claims,
@@ -125,7 +128,7 @@ pub struct PasswordForm {
 
 /// Profile update handler
 pub async fn update_password_handler(
-    claims: IdTokenClaims,
+    claims: IdClaims,
     State(state): State<AppState>,
     Form(form): Form<PasswordForm>,
 ) -> Result<MessageBlock, MessageBlock> {
