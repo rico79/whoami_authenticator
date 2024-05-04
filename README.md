@@ -66,7 +66,7 @@ For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for
 ```
 # General
 APP_NAME = "Authenticator"
-APP_URL = "http://127.0.0.1:8000"
+APP_URL = "http://localhost:8001"
 OWNER_MAIL = "Your mail"
 
 # Database

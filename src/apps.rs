@@ -2,6 +2,7 @@ pub mod app;
 pub mod app_list;
 
 use axum::response::Redirect;
+use http::Uri;
 use shuttle_runtime::SecretStore;
 use sqlx::{
     types::chrono::{DateTime, Local},
@@ -82,6 +83,17 @@ impl App {
         Self::select_from_app_id(state, app_id)
             .await
             .unwrap_or(state.authenticator_app.clone())
+    }
+
+    pub fn domain(&self) -> Result<String, AuthenticatorError> {
+        let uri = self
+            .base_url
+            .parse::<Uri>()
+            .map_err(|_| AuthenticatorError::AppInvalidUri)?;
+
+        let authority = uri.authority().ok_or(AuthenticatorError::AppInvalidUri)?;
+
+        Ok(authority.host().to_string())
     }
 
     pub fn redirect_url(&self) -> String {

@@ -12,7 +12,10 @@ use jsonwebtoken::{
     Validation,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::types::{chrono::{NaiveDate, Utc}, Uuid};
+use sqlx::types::{
+    chrono::{NaiveDate, Utc},
+    Uuid,
+};
 use tracing::error;
 
 use crate::{
