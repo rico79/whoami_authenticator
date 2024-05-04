@@ -63,6 +63,7 @@ impl TokenFactory {
             avatar: user.avatar_url.clone(),
             birthday: user.birthday.clone(),
             iss: self.authenticator_app.base_url.clone(),
+            aud: self.app.base_url.clone(),
             iat: now,
             exp: expiration_time,
         };
@@ -84,10 +85,19 @@ impl TokenFactory {
     }
 
     pub fn extract_id_token(&self, token: String) -> Result<Token<IdClaims>, AuthenticatorError> {
+        let validate_urls = [
+            self.authenticator_app.base_url.clone(),
+            self.app.base_url.clone(),
+        ];
+
+        let mut validation = Validation::default();
+        validation.set_issuer(&validate_urls);
+        validation.set_audience(&validate_urls);
+
         let decoded_token = decode::<IdClaims>(
             &token,
             &DecodingKey::from_secret(self.app.jwt_secret.as_ref()),
-            &Validation::default(),
+            &validation,
         )
         .map_err(|error| {
             match error.kind() {
@@ -112,6 +122,7 @@ impl TokenFactory {
 pub struct IdClaims {
     pub sub: String,
     iss: String,
+    aud: String,
     iat: i64,
     exp: i64,
     pub name: String,
