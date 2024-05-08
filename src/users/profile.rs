@@ -113,7 +113,7 @@ pub async fn update_profile_handler(
             &state,
             claims,
             None,
-            MessageBlock::closeable(Level::Error, "", &error.to_string()),
+            MessageBlock::new(Level::Error, "", &error.to_string()),
         )
         .await
         .into_response(),
@@ -139,9 +139,9 @@ pub async fn update_password_handler(
         &form.confirm_password,
     )
     .await
-    .map_err(|error| MessageBlock::closeable(Level::Error, "", &error.to_string()))?;
+    .map_err(|error| MessageBlock::new(Level::Error, "", &error.to_string()))?;
 
-    Ok(MessageBlock::closeable(
+    Ok(MessageBlock::new(
         Level::Success,
         "",
         "Votre password a bien été modifié",

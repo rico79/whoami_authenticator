@@ -1,0 +1,20 @@
+[tasks.format]
+description = "Format all rust files"
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--all"]
+
+[tasks.tailwindcss]
+description = "Generate css file for dev with tailwindcss"
+script = "./tailwindcss -i tailwind_input.css -o assets/styles/tailwind_styles-min.css --minify"
+
+[tasks.run]
+description = "Run the project"
+command = "cargo"
+args = ["shuttle", "run", "--port", "8001"]
+dependencies = ["format", "tailwindcss"]
+
+[tasks.deploy]
+description = "Deploy the project"
+command = "cargo"
+args = ["shuttle", "deploy"]

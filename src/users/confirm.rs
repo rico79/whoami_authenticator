@@ -57,7 +57,7 @@ pub async fn send_confirm_handler(
 
     let error_response = ConfirmPage {
         action: Action::Sending,
-        message: MessageBlock::permanent(
+        message: MessageBlock::new(
             Level::Error,
             "Envoi impossible",
             "Veillez réessayer plus tard",
@@ -74,7 +74,7 @@ pub async fn send_confirm_handler(
 
     let successfull_response = ConfirmPage {
         action: Action::Sending,
-        message: MessageBlock::permanent(
+        message: MessageBlock::new(
             Level::Success,
             "Mail envoyé",
             &format!(
@@ -99,7 +99,7 @@ pub async fn confirm_mail_handler(
 
     let error_response = ConfirmPage {
         action: Action::Confirming,
-        message: MessageBlock::permanent(
+        message: MessageBlock::new(
             Level::Error,
             "Confirmation impossible",
             "Le code de confirmation est inconnu",
@@ -113,7 +113,7 @@ pub async fn confirm_mail_handler(
 
     Ok(ConfirmPage {
         action: Action::Confirming,
-        message: MessageBlock::permanent(
+        message: MessageBlock::new(
             Level::Success,
             "Mail confirmé",
             &format!(

@@ -1,18 +1,16 @@
 {% if ! Self::is_empty(self) %}
-<div class="ui {{ level }} message">
-    {% if is_closeable %}<i class="close icon"></i>{% endif %}
-    {% if header.len() > 0 %}
-    <div class="header">
-        {{ header }}
-    </div>
-    {% endif %}
+{% match level %}
+{% when Level::Success %}
+<div class="w-full mb-2 select-none rounded-lg bg-green-100 p-4 text-green-800 text-sm font-medium">
     {{ body }}
 </div>
-{% if is_closeable %}
-<script>
-    $('.message .close').on('click', function () {
-        $(this).closest('.message').transition('fade');
-    });
-</script>
-{% endif %}
+{% when Level::Error %}
+<div class="w-full mb-2 select-none rounded-lg bg-red-100 p-4 text-red-800 text-sm font-medium">
+    {{ body }}
+</div>
+{% when Level::Info %}
+<div class="w-full mb-2 select-none rounded-lg bg-blue-100 p-4 text-blue-800 text-sm font-medium">
+    {{ body }}
+</div>
+{% endmatch %}
 {% endif %}

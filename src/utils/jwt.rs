@@ -158,7 +158,7 @@ where
             signin::SigninPage::for_app_with_redirect_and_message(
                 state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
-                MessageBlock::closeable(
+                MessageBlock::new(
                     Level::Error,
                     "",
                     &AuthenticatorError::InvalidToken.to_string(),
@@ -170,7 +170,7 @@ where
             signin::SigninPage::for_app_with_redirect_and_message(
                 state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
-                MessageBlock::closeable(Level::Error, "", &error.to_string()),
+                MessageBlock::new(Level::Error, "", &error.to_string()),
             )
         })
     }

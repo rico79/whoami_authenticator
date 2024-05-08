@@ -106,7 +106,7 @@ pub async fn post_handler(
             Some(form.birthday.clone()),
             Some(form.mail.clone()),
             app.clone(),
-            MessageBlock::closeable(Level::Error, "Inscription impossible", &error.to_string()),
+            MessageBlock::new(Level::Error, "Inscription impossible", &error.to_string()),
         )
     })?;
 

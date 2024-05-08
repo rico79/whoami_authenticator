@@ -8,6 +8,11 @@ Install rust formatter
 rustup component add rustfmt
 ```
 
+Install cargo make
+```
+cargo install cargo-make
+```
+
 Install cargo shuttle and login
 ```
 cargo install cargo-shuttle
@@ -57,15 +62,29 @@ ALTER DATABASE authenticator OWNER TO devapp;
 \q
 ```
 
+## Tailwind
+Download the last CLI version : [https://github.com/tailwindlabs/tailwindcss/releases/latest]
+
+Then copy it in this project directory and rename it to "tailwindcss"
+```
+mv tailwindcss-<end of name file> tailwindcss
+```
+
+And remember to give execution rights to the file
+```
+chmod +x tailwindcss
+```
+
 ## VSCode extensions
 - rust-analyzer 
 - Even Better TOML
+- Tailwind CSS IntelliSense
 
 ## Secrets structure
 For the app to run you need to create a Secrets.toml (and a Secrets.dev.toml for local dev) file containing
 ```
 # General
-APP_NAME = "Authenticator"
+APP_NAME = "whoami"
 APP_URL = "http://localhost:8001"
 OWNER_MAIL = "Your mail"
 
@@ -85,15 +104,10 @@ JWT_SECRET = "Your JWT secret"
 ## To build and run the app
 To run the app locally (localhost)
 ```
-cargo shuttle run [--port XXXX]
-```
-
-To run the app exposed on local network (on 0.0.0.0:XXXX)
-```
-cargo shuttle run --external [--port XXXX]
+cargo make run
 ```
 
 To deploy the app
 ```
-cargo shuttle deploy
+cargo make deploy
 ```

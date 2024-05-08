@@ -1,22 +1,10 @@
-use std::fmt;
-
 use askama::Template;
 
 #[derive(Clone, Debug)]
 pub enum Level {
     Success,
     Error,
-}
-
-impl fmt::Display for Level {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let message = match self {
-            Level::Success => "success",
-            Level::Error => "negative",
-        };
-
-        write!(f, "{}", message)
-    }
+    Info,
 }
 
 #[derive(Clone, Debug, Template)]
@@ -25,34 +13,18 @@ pub struct MessageBlock {
     header: String,
     level: Level,
     body: String,
-    is_closeable: bool,
 }
 
 impl MessageBlock {
     pub fn empty() -> Self {
-        Self {
-            header: "".to_owned(),
-            level: Level::Success,
-            body: "".to_owned(),
-            is_closeable: false,
-        }
+        Self::new(Level::Info, "", "")
     }
 
-    pub fn closeable(level: Level, header: &str, body: &str) -> Self {
+    pub fn new(level: Level, header: &str, body: &str) -> Self {
         Self {
+            header: header.into(),
+            body: body.into(),
             level,
-            header: header.to_owned(),
-            body: body.to_owned(),
-            is_closeable: true,
-        }
-    }
-
-    pub fn permanent(level: Level, header: &str, body: &str) -> Self {
-        Self {
-            level,
-            header: header.to_owned(),
-            body: body.to_owned(),
-            is_closeable: false,
         }
     }
 

@@ -1,156 +1,73 @@
-{% extends "base.html" %}
+{% extends "main_page.html" %}
 
-{% block head %}
-<style type="text/css">
-    body>.grid {
-        height: 100%;
-    }
+{% block body %}
+<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+        {% include "general/page_logo.html" %}
+        <h2 class="mt-3 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+            Inscription
+        </h2>
+    </div>
 
-    .column {
-        max-width: 400px;
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="ui middle aligned center aligned grid">
-    <div class="left aligned column">
-        <div class="ui center aligned container">
-            <img class="ui centered tiny image" src="{{ app.logo_url() }}">
-            <h2 class="ui center aligned text header">
-                {{ app.name }}
-            </h2>
-        </div>
-
-        <div class="ui container">
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <form class="space-y-6" action="/signup" method="POST">
             {{ message|escape("none") }}
+            <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
 
-            <form class="ui form" method="POST" action="/signup">
-                <div class="ui error message"></div>
-
-                <div class="field">
-                    <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
-                </div>
-
-                <div class="two fields">
-                    <div class="field">
-                        <label>Nom</label>
-                        <div class="ui left icon input">
-                            <input class="input" type="text" name="name" value="{{ name }}" placeholder="ex: Yoda" />
-                            <i class="user icon"></i>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label>Date de Naissance</label>
-                        <div class="ui left icon input">
-                            <input class="input" type="date" name="birthday" value="{{ birthday }}" />
-                            <i class="calendar icon"></i>
-                        </div>
+            <div class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <div class="sm:col-span-1">
+                    <label for="name" class="block text-sm font-medium leading-6 text-gray-900">Nom</label>
+                    <div class="mt-2">
+                        <input type="text" name="name" id="name" value="{{ name }}" placeholder="ex: Yoda" required
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
-                <div class="field">
-                    <label class="label">Mail</label>
-                    <div class="ui left icon input">
-                        <input class="input" type="email" name="mail" value="{{ mail }}"
-                            placeholder="ex: yoda@dagobah.edu" />
-                        <i class="envelope icon"></i>
+                <div class="sm:col-span-1">
+                    <label for="birthday" class="block text-sm font-medium leading-6 text-gray-900">Date de Naissance</label>
+                    <div class="mt-2">
+                        <input type="date" name="birthday" id="birthday" value="{{ birthday }}" required
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
-                <div class="field">
-                    <label class="label">Mot de passe</label>
-                    <div class="ui left icon input">
-                        <input class="input" type="password" name="password" placeholder="********" />
-                        <i class="lock icon"></i>
+                <div class="sm:col-span-full">
+                    <label for="mail" class="block text-sm font-medium leading-6 text-gray-900">Adresse mail</label>
+                    <div class="mt-2">
+                        <input type="email" id="mail" name="mail" value="{{ mail }}" placeholder="ex: yoda@dagobah.edu" required
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
-                <div class="field">
-                    <label class="label">Confirmez le mot de passe</label>
-                    <div class="ui left icon input">
-                        <input class="input" type="password" name="confirm_password" placeholder="********" />
-                        <i class="redo icon"></i>
+                <div class="sm:col-span-full">
+                    <label for="password" class="block text-sm font-medium leading-6 text-gray-900">Mot de passe</label>
+                    <div class="mt-2">
+                        <input type="password" id="password" name="password" placeholder="*****************" required
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                     </div>
                 </div>
 
-                <div class="ui center aligned basic segment">
-                    <button class="ui primary button">
-                        S'inscrire
-                    </button>
-                    <a class="ui button" href="/">
-                        Annuler
-                    </a>
-
-                    <div class="ui horizontal divider">
-                        Ou
+                <div class="sm:col-span-full">
+                    <label for="confirm_password" class="block text-sm font-medium leading-6 text-gray-900">Confirmation du mot de passe</label>
+                    <div class="mt-2">
+                        <input type="password" id="confirm_password" name="confirm_password" placeholder="*****************" required
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
                     </div>
-
-                    <a class="ui big button" href="/signin">
-                        <i class="sign-in icon"></i>
-                        Se connecter
-                    </a>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-center gap-x-6">
+                <button type="submit"
+                    class="flex justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                    Je m'inscris
+                </button>
+
+                <a href="/signin" class="flex justify-center gap-x-3 text-sm font-semibold leading-6 text-gray-900">
+                    Je vais plutôt me connecter
+                    <span aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+        </form>
     </div>
 </div>
-
-<script>
-    $('.ui.form').form({
-        fields: {
-            name: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre nom'
-                    }
-                ]
-            },
-            birthday: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre date de naissance'
-                    }
-                ]
-            },
-            mail: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre mail'
-                    },
-                    {
-                        type: 'regExp',
-                        value: /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/,
-                        prompt: 'Veuillez rentrer une adresse mail valide'
-                    }
-                ]
-            },
-            password: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre mot de passe'
-                    }
-                ]
-            },
-            confirm_password: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez confirmer votre mot de passe'
-                    },
-                    {
-                        type: 'match[password]',
-                        prompt: 'La confirmation du mot de passe ne correspond pas'
-
-                    }
-                ]
-            },
-        }
-    });
-</script>
 {% endblock %}

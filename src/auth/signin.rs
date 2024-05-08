@@ -114,7 +114,7 @@ pub async fn post_handler(
             SigninPage::for_app_from_form_with_message(
                 app_to_connect.clone(),
                 form.clone(),
-                MessageBlock::closeable(Level::Error, "Connexion impossible", &error.to_string()),
+                MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
             )
         })?;
 
@@ -124,7 +124,7 @@ pub async fn post_handler(
             SigninPage::for_app_from_form_with_message(
                 app_to_connect.clone(),
                 form.clone(),
-                MessageBlock::closeable(Level::Error, "Connexion impossible", &error.to_string()),
+                MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
             )
         })?;
 
@@ -132,7 +132,7 @@ pub async fn post_handler(
         return Err(SigninPage::for_app_from_form_with_message(
             app_to_connect,
             form,
-            MessageBlock::closeable(
+            MessageBlock::new(
                 Level::Error,
                 "Connexion impossible",
                 &AuthenticatorError::WrongCredentials.to_string(),
@@ -151,7 +151,7 @@ pub async fn post_handler(
         SigninPage::for_app_from_form_with_message(
             app_to_connect,
             form,
-            MessageBlock::closeable(Level::Error, "Connexion impossible", &error.to_string()),
+            MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
         )
     })
 }
