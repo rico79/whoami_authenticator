@@ -92,7 +92,7 @@ pub async fn post_handler(
     let app = App::select_app_or_authenticator(&state, form.app_id).await;
 
     let created_user = User::create(
-        &state,
+        &state.db_pool,
         &form.name,
         &form.birthday,
         &form.mail,

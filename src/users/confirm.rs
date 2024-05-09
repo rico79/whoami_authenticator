@@ -68,7 +68,7 @@ pub async fn send_confirm_handler(
     let user_id =
         Uuid::parse_str(&params.user_id.unwrap_or_default()).map_err(|_| error_response.clone())?;
 
-    let user = User::select_from_id(&state, user_id)
+    let user = User::select_from_id(&state.db_pool, user_id)
         .await
         .map_err(|_| error_response.clone())?;
 

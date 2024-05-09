@@ -33,7 +33,9 @@ impl ProfilePage {
         returned_user: Option<User>,
         profile_message: MessageBlock,
     ) -> Self {
-        let user = returned_user.or(User::select_from_id(&state, claims.user_id()).await.ok());
+        let user = returned_user.or(User::select_from_id(&state.db_pool, claims.user_id())
+            .await
+            .ok());
 
         let confirm_send_url = match &user {
             Some(user) => {
@@ -48,7 +50,7 @@ impl ProfilePage {
                 claims: Some(claims),
             },
             go_back: GoBackButton {
-                back_url: "/home".to_owned(),
+                back_url: "/".to_owned(),
             },
             user: user,
             confirm_send_url,
@@ -77,7 +79,7 @@ pub async fn update_profile_handler(
     Form(form): Form<ProfileForm>,
 ) -> impl IntoResponse {
     let potentially_updated_user = User::update_profile(
-        &state,
+        &state.db_pool,
         &claims.user_id(),
         &form.name,
         &form.birthday,
@@ -133,7 +135,7 @@ pub async fn update_password_handler(
     Form(form): Form<PasswordForm>,
 ) -> Result<MessageBlock, MessageBlock> {
     let _ = User::update_password(
-        &state,
+        &state.db_pool,
         &claims.user_id(),
         &form.password,
         &form.confirm_password,

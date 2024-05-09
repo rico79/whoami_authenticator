@@ -52,7 +52,7 @@ impl App {
             name: secrets.get("APP_NAME").unwrap(),
             description: "Gère la connexion de vos utilisateurs pour vos apps".to_owned(),
             base_url: secrets.get("APP_URL").unwrap(),
-            redirect_endpoint: "/home".to_owned(),
+            redirect_endpoint: "".to_owned(),
             logo_endpoint: "/assets/images/logo.png".to_owned(),
             jwt_secret: secrets.get("JWT_SECRET").unwrap(),
             jwt_seconds_to_expire: secrets.get("JWT_EXPIRE_SECONDS").unwrap().parse().unwrap(),

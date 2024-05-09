@@ -108,7 +108,7 @@ pub async fn post_handler(
 ) -> Result<impl IntoResponse, SigninPage> {
     let app_to_connect = App::select_app_or_authenticator(&state, form.app_id).await;
 
-    let user = User::select_from_mail(&state, &form.mail)
+    let user = User::select_from_mail(&state.db_pool, &form.mail)
         .await
         .map_err(|error| {
             SigninPage::for_app_from_form_with_message(

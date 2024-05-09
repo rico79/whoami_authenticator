@@ -6,7 +6,7 @@ use sqlx::{
         time::{Date, OffsetDateTime},
         Uuid,
     },
-    FromRow,
+    FromRow, PgPool,
 };
 use tracing::log::error;
 
@@ -39,7 +39,7 @@ impl User {
     }
 
     pub async fn select_from_id(
-        state: &AppState,
+        db_pool: &PgPool,
         user_id: Uuid,
     ) -> Result<Self, AuthenticatorError> {
         let user: User = sqlx::query_as(
@@ -57,7 +57,7 @@ impl User {
                     id = $1",
         )
         .bind(user_id)
-        .fetch_one(&state.db_pool)
+        .fetch_one(db_pool)
         .await
         .map_err(|error| {
             error!("Selecting user from id {} -> {:?}", user_id, error);
@@ -68,7 +68,7 @@ impl User {
     }
 
     pub async fn select_from_mail(
-        state: &AppState,
+        db_pool: &PgPool,
         mail: &String,
     ) -> Result<Self, AuthenticatorError> {
         let user: User = sqlx::query_as(
@@ -86,7 +86,7 @@ impl User {
                     mail = $1",
         )
         .bind(mail)
-        .fetch_one(&state.db_pool)
+        .fetch_one(db_pool)
         .await
         .map_err(|error| {
             error!("Selecting user from mail {} -> {:?}", mail, error);
@@ -97,7 +97,7 @@ impl User {
     }
 
     pub async fn update_profile(
-        state: &AppState,
+        db_pool: &PgPool,
         user_id: &Uuid,
         name: &String,
         birthday: &String,
@@ -137,7 +137,7 @@ impl User {
         .bind(avatar_url)
         .bind(mail)
         .bind(user_id)
-        .fetch_one(&state.db_pool)
+        .fetch_one(db_pool)
         .await
         .map_err(|error| match error {
             sqlx::Error::Database(error) => {
@@ -158,7 +158,7 @@ impl User {
     }
 
     pub async fn update_password(
-        state: &AppState,
+        db_pool: &PgPool,
         user_id: &Uuid,
         password: &String,
         confirm_password: &String,
@@ -177,7 +177,7 @@ impl User {
             sqlx::query("UPDATE users SET encrypted_password = $1 WHERE id = $2")
                 .bind(encrypted_password)
                 .bind(user_id)
-                .execute(&state.db_pool)
+                .execute(db_pool)
                 .await
                 .map_err(|error| {
                     error!("Updating password for user {} -> {:?}", user_id, error);
@@ -225,7 +225,7 @@ impl User {
     }
 
     pub async fn create(
-        state: &AppState,
+        db_pool: &PgPool,
         name: &String,
         birthday: &String,
         mail: &String,
@@ -277,7 +277,7 @@ impl User {
         .bind(birthday_date)
         .bind(mail)
         .bind(encrypted_password)
-        .fetch_one(&state.db_pool)
+        .fetch_one(db_pool)
         .await
         .map_err(|error| match error {
             sqlx::Error::Database(error) => {
