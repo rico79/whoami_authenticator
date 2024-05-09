@@ -9,7 +9,7 @@
         </h2>
     </div>
 
-    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+    <div class="mt-4 sm:mx-auto sm:w-full sm:max-w-sm">
         <form class="space-y-6" action="/signin" method="POST">
             <div>{{ message|escape("none") }}</div>
             {% if let Some(requested_endpoint) = requested_endpoint %}
