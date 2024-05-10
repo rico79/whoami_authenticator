@@ -1,25 +1,69 @@
 {% if ! Self::is_empty(self) %}
-{% match level %}
-{% when Level::Success %}
-<div class="w-full mb-2 select-none rounded-lg bg-green-100 p-4 text-green-800 text-sm font-medium">
-    <h4 class="font-bold tracking-tight text-green-900">
-        {{ header }}
-    </h4>
-    {{ body }}
+<div x-data="{ visible: true }" x-on:click="visible = false" x-show="visible" x-transition.duration.300ms>
+    {% match level %}
+    {% when Level::Success %}
+    <div class="p-6 border-l-4 border-green-500 -6 rounded-r-xl bg-green-50">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                    fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <div class="text-sm text-green-600">
+                    <h4 class="font-bold tracking-tight">
+                        {{ header }}
+                    </h4>
+                    <p>{{ body }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% when Level::Error %}
+    <div class="p-6 border-l-4 border-red-500 -6 rounded-r-xl bg-red-50">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                    fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <div class="text-sm text-red-600">
+                    <h4 class="font-bold tracking-tight">
+                        {{ header }}
+                    </h4>
+                    <p>{{ body }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% when Level::Info %}
+    <div class="p-6 border-l-4 border-blue-500 -6 rounded-r-xl bg-blue-50">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                    fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd"
+                        d="M12,0A12,12,0,1,0,24,12,12.013,12.013,0,0,0,12,0Zm.25,5a1.5,1.5,0,1,1-1.5,1.5A1.5,1.5,0,0,1,12.25,5ZM14.5,18.5h-4a1,1,0,0,1,0-2h.75a.25.25,0,0,0,.25-.25v-4.5a.25.25,0,0,0-.25-.25H10.5a1,1,0,0,1,0-2h1a2,2,0,0,1,2,2v4.75a.25.25,0,0,0,.25.25h.75a1,1,0,1,1,0,2Z"
+                        clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <div class="text-sm text-blue-600">
+                    <h4 class="font-bold tracking-tight">
+                        {{ header }}
+                    </h4>
+                    <p>{{ body }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endmatch %}
 </div>
-{% when Level::Error %}
-<div class="w-full mb-2 select-none rounded-lg bg-red-100 p-4 text-red-800 text-sm font-medium">
-    <h4 class="font-bold tracking-tight text-red-900">
-        {{ header }}
-    </h4>
-    {{ body }}
-</div>
-{% when Level::Info %}
-<div class="w-full mb-2 select-none rounded-lg bg-blue-100 p-4 text-blue-800 text-sm font-medium">
-    <h4 class="font-bold tracking-tight text-blue-900">
-        {{ header }}
-    </h4>
-    {{ body }}
-</div>
-{% endmatch %}
 {% endif %}

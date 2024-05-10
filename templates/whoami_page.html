@@ -1,40 +1,42 @@
 {% extends "main_page.html" %}
 
-{% block body %}
-<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
-    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
-        {% include "general/page_logo.html" %}
+{% block navbar %}
+{% include "general/navbar_block.html" %}
+{% endblock %}
 
-        {% if let Some(claims) = claims %}
-        <a href="/profile">
-            <h2 class="mt-3 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-                {{ claims.name }}
-            </h2>
-        </a>
-        <div class="mt-6 flex items-center justify-center gap-x-6">
-            <a href="/signout"
-                class="flex justify-center gap-x-3 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                Je me déconnecte
-                <span aria-hidden="true">&rarr;</span>
-            </a>
-        </div>
-        {% else %}
-        <h2 class="mt-3 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-            Nous connaissons nous déjà ?
-        </h2>
-        <div class="mt-6 flex items-center justify-center gap-x-6">
-            <a href="/signin"
-                class="flex justify-center gap-x-3 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                Oui
-                <span aria-hidden="true">&rarr;</span>
-            </a>
-            <a href="/signup"
-                class="flex justify-center gap-x-3 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                Non
-                <span aria-hidden="true">&rarr;</span>
-            </a>
-        </div>
+{% block body %}
+<div class="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
+    {% if let Some(claims) = claims %}
+    <div class="flex flex-col items-center justify-center gap-x-5">
+        {% if claims.avatar.len() > 0 %}
+        <img class="h-16 w-16 rounded-full" src="{{ claims.avatar }}">
         {% endif %}
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            {{ claims.name }}
+        </h1>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+            {{ claims.mail }}
+        </p>
     </div>
+    {% else %}
+    <div class="text-center">
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            Personne n'est connecté
+        </h1>
+        <p class="mt-6 text-lg leading-8 text-gray-600">
+            Déjà venu ici ?
+        </p>
+        <div class="mt-10 flex items-center justify-center gap-x-6">
+            <a href="/signin"
+                class="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                Je me connecte
+            </a>
+            <a href="/signup" class="text-sm font-semibold leading-6 text-gray-900">
+                Je m'inscris
+                <span aria-hidden="true">→</span>
+            </a>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

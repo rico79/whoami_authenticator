@@ -1,47 +1,73 @@
-<div class="ui text menu">
-    <div class="ui container">
-        <div class="item">
-            <img src="assets/images/logo.png">
+<header x-data="{ menu_is_open: false }" class="absolute inset-x-0 top-0 z-50">
+    <nav class="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+        <div class="flex lg:flex-1">
+            <div class="-m-1.5 p-1.5">
+                {% include "general/logo.html" %}
+            </div>
         </div>
 
         {% if let Some(claims) = claims %}
-        <a class="header item" href="/">whoami</a>
-
-        <div class="ui right dropdown item">
-            <div class="text">
-                {% if claims.avatar.len() > 0 %}
-                <img class="ui avatar image" src="{{ claims.avatar }}">
-                {% endif %}
-                {{ claims.name }}
-            </div>
-            <i class="dropdown icon"></i>
-            <div class="menu">
-                <a class="item" href="/home">
-                    <i class="home icon"></i>
-                    Accueil
-                </a>
-                <a class="item" href="/profile">
-                    <i class="address card icon"></i>
-                    Mon profil
-                </a>
-                <a class="item" href="/signout">
-                    <i class="sign-out icon"></i>
-                    Se déconnecter
-                </a>
-            </div>
+        <div class="flex">
+            <button x-on:click="menu_is_open = true" type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
+                <span class="sr-only">Open main menu</span>
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                    aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                </svg>
+            </button>
         </div>
         {% else %}
-        <a class="header item" href="/">Authenticator</a>
-
-        <div class="right menu">
-            <a class="item" href="/home">
-                <i class="sign-in icon"></i>
-                Se connecter
+        <div class="flex flex-1 gap-x-12 justify-end">
+            <a href="/signin" class="text-sm font-semibold leading-6 text-gray-900">
+                Je me connecte
+                <span aria-hidden="true">&rarr;</span>
             </a>
         </div>
         {% endif %}
+    </nav>
+    <div :class="menu_is_open ? '' : 'hidden'" role="dialog" aria-modal="true">
+        <div class="fixed inset-0 z-50"></div>
+        <div
+            class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
+            <div class="flex justify-end">
+                <button x-on:click="menu_is_open = false" type="button" class="-m-2.5 rounded-md p-2.5 text-gray-700">
+                    <span class="sr-only">Close menu</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                        aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-6 flow-root">
+                <div class="-my-6 divide-y divide-gray-500/10">
+                    {% if let Some(claims) = claims %}
+                    <div class="space-y-2 py-6">
+                        <a href="/home"
+                            class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50">
+                            Home
+                        </a>
+                        <a href="/profile"
+                            class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50">
+                            Mon profile
+                        </a>
+                    </div>
+                    <div class="py-6">
+                        <a href="/signout"
+                            class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50">
+                            Je me déconnecte
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="py-6">
+                        <a href="/signin"
+                            class="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50">
+                            Je me connecte
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
-</div>
-<script>
-    $('.ui.dropdown').dropdown();
-</script>
+</header>
