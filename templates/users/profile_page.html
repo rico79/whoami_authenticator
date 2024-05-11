@@ -6,7 +6,7 @@
 
 {% block body %}
 {% if let Some(profile) = user %}
-<div class="mx-auto max-w-md text-center">
+<div class="mx-auto max-w-xl text-center">
     <div class="flex items-center justify-center gap-x-5">
         {% if profile.avatar_url.len() > 0 %}
         <img class="h-16 w-16 rounded-full" src="{{ profile.avatar_url }}">
@@ -20,11 +20,11 @@
     </p>
 </div>
 
-<div class="mx-auto max-w-md mt-5">
+<div class="mx-auto max-w-xl mt-5">
     {{ profile_message|escape("none") }}
 </div>
 
-<form class="mx-auto mt-8 max-w-md sm:mt-8" action="/profile" method="POST">
+<form class="mx-auto mt-8 max-w-xl sm:mt-8" action="/profile" method="POST">
     <div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
         <div class="sm:col-span-1">
             <label for="name" class="block text-sm font-semibold leading-6 text-gray-900">
@@ -91,11 +91,11 @@
     </div>
 </form>
 
-<div id="password_message" class="mx-auto max-w-md mt-5">
+<div id="password_message" class="mx-auto max-w-xl mt-5">
     {{ password_message|escape("none") }}
 </div>
 
-<form class="mx-auto mt-8 max-w-md sm:mt-8" hx-post="/password" hx-target="#password_message">
+<form class="mx-auto mt-8 max-w-xl sm:mt-8" hx-post="/password" hx-target="#password_message">
     <div class="grid grid-cols-1 gap-x-8 gap-y-6">
         <div>
             <label for="password" class="block text-sm font-semibold leading-6 text-gray-900">

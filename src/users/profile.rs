@@ -45,9 +45,7 @@ impl ProfilePage {
         };
 
         ProfilePage {
-            navbar: NavBarBlock {
-                claims: Some(claims),
-            },
+            navbar: NavBarBlock::from(Some(claims)),
             user: user,
             confirm_send_url,
             profile_message,

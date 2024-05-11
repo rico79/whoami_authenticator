@@ -1,4 +1,5 @@
 pub mod app;
+pub mod my_apps;
 
 use axum::response::Redirect;
 use http::Uri;
@@ -142,7 +143,9 @@ impl App {
                 owner_id
             FROM apps 
             WHERE 
-                owner_id = $1",
+                owner_id = $1
+            ORDER BY
+                name",
         )
         .bind(claims.user_id())
         .fetch_all(&state.db_pool)

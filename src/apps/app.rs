@@ -7,13 +7,14 @@ use axum::{
 use serde::Deserialize;
 use time::OffsetDateTime;
 
-use crate::{utils::jwt::IdClaims, AppState};
+use crate::{general::navbar::NavBarBlock, utils::jwt::IdClaims, AppState};
 
 use super::App;
 
 #[derive(Template)]
-#[template(path = "apps/app_block.html")]
+#[template(path = "apps/app_page.html")]
 pub struct AppPage {
+    navbar: NavBarBlock,
     app: Option<App>,
     read_only: bool,
 }
@@ -30,11 +31,13 @@ impl AppPage {
     fn from_app(claims: &IdClaims, app: Option<App>) -> Result<Self, Self> {
         match app {
             Some(app) => Ok(AppPage {
+                navbar: NavBarBlock::from(Some(claims.clone())),
                 app: Some(app.clone()),
                 read_only: !app.can_be_updated_by(claims.user_id()),
             }),
 
             None => Ok(AppPage {
+                navbar: NavBarBlock::from(Some(claims.clone())),
                 app: app.clone(),
                 read_only: !App::new(&claims.user_id()).can_be_updated_by(claims.user_id()),
             }),
@@ -52,6 +55,7 @@ impl AppPage {
             }
 
             None => Err(AppPage {
+                navbar: NavBarBlock::from(Some(claims.clone())),
                 app: Some(App::new(&claims.user_id())),
                 read_only: false,
             }),

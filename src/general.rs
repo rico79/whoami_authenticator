@@ -2,7 +2,6 @@ use std::fmt;
 
 use serde::Deserialize;
 
-pub mod dashboard;
 pub mod message;
 pub mod navbar;
 pub mod whoami;

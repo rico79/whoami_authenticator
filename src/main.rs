@@ -69,9 +69,6 @@ async fn http_server(
 
     let router = Router::new()
         .route("/", get(general::whoami::get_handler))
-        .route("/dashboard", get(general::dashboard::get_handler))
-        .route("/send_confirm", get(users::confirm::send_confirm_handler))
-        .route("/confirm_mail", get(users::confirm::confirm_mail_handler))
         .route(
             "/signup",
             get(auth::signup::get_handler).post(auth::signup::post_handler),
@@ -81,11 +78,14 @@ async fn http_server(
             get(auth::signin::get_handler).post(auth::signin::post_handler),
         )
         .route("/signout", get(auth::signout::get_handler))
+        .route("/send_confirm", get(users::confirm::send_confirm_handler))
+        .route("/confirm_mail", get(users::confirm::confirm_mail_handler))
         .route(
             "/profile",
             get(users::profile::get_handler).post(users::profile::update_profile_handler),
         )
         .route("/password", post(users::profile::update_password_handler))
+        .route("/owned_apps", get(apps::my_apps::get_handler))
         .route(
             "/app",
             get(apps::app::get_handler).post(apps::app::post_handler),
