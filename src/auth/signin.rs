@@ -140,18 +140,13 @@ pub async fn post_handler(
         ));
     }
 
-    new_session_into_response(
-        cookies,
-        &state,
-        &user,
-        &app_to_connect,
-        form.requested_endpoint.clone(),
+    new_session_into_response(cookies, &state, &user, form.requested_endpoint.clone()).map_err(
+        |error| {
+            SigninPage::for_app_from_form_with_message(
+                app_to_connect,
+                form,
+                MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
+            )
+        },
     )
-    .map_err(|error| {
-        SigninPage::for_app_from_form_with_message(
-            app_to_connect,
-            form,
-            MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
-        )
-    })
 }

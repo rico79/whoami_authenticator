@@ -1,191 +1,139 @@
-{% extends "base.html" %}
+{% extends "main_page.html" %}
 
-{% block content %}
+{% block navbar %}
 {{ navbar|escape("none") }}
+{% endblock %}
 
-<div class="ui main container">
-
-    {% if let Some(profile) = user %}
-    <img class="ui centered circular tiny image" src="{{ profile.avatar_url }}">
-
-    <h2 class="ui center aligned header">
-        Mon profil
-        <div class="sub header">
-            Créé le {{ profile.created_at.date() }}
-        </div>
-    </h2>
-
-    <div class="two column doubling ui grid">
-        <div class="column">
-            <h4 class="ui dividing header">Informations générales</h4>
-
-            <div class="ui container">
-                {{ profile_message|escape("none") }}
-
-                <form class="ui form" method="POST" action="/profile">
-                    <div class="ui error message"></div>
-
-                    <div class="two fields">
-                        <div class="field">
-                            <label>Nom</label>
-                            <div class="ui left icon input">
-                                <input class="input" type="text" name="name" value="{{ profile.name }}"
-                                    placeholder="ex: Yoda" />
-                                <i class="user icon"></i>
-                            </div>
-                        </div>
-
-                        <div class="field">
-                            <label>Date de Naissance</label>
-                            <div class="ui left icon input">
-                                <input class="input" type="date" name="birthday" value="{{ profile.birthday }}" />
-                                <i class="calendar icon"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label>URL de l'avatar</label>
-                        <div class="ui left icon input">
-                            <input class="input" type="url" name="avatar_url" value="{{ profile.avatar_url }}"
-                                placeholder="ex: https//..." />
-                            <i class="image icon"></i>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label class="label">Mail
-                            {% if profile.mail_is_confirmed %}
-                            <i class="green check icon"></i>
-                            {% else %}
-                            <i class="red close icon"></i>
-                            {% endif %}
-                        </label>
-                        <div class="ui left icon input">
-                            <input class="input" type="email" name="mail" value="{{ profile.mail }}"
-                                placeholder="ex: yoda@dagobah.edu" />
-                            <i class="envelope icon"></i>
-                        </div>
-                    </div>
-
-                    {% if ! profile.mail_is_confirmed %}
-                    <div class="ui negative message">
-                        Le mail n'a pas été confirmé, veuillez vérifier votre boite
-                        <a class="ui negative basic button" href="{{ confirm_send_url }}" target="_blank">
-                            <i class="paper plane icon"></i>
-                            Renvoyer la confirmation du mail
-                        </a>
-                    </div>
-                    {% endif %}
-
-                    <button class="ui primary button">
-                        Modifier
-                    </button>
-
-                    {{ go_back|escape("none") }}
-                </form>
-            </div>
-        </div>
-
-        <div class="column">
-            <h4 class="ui dividing header">Changer de mot de passe</h4>
-
-            <div class="ui container">
-                <div id="password_message" class="ui container">
-                    {{ password_message|escape("none") }}
-                </div>
-
-                <form class="ui form" hx-post="/password" hx-target="#password_message">
-                    <div class="ui error message"></div>
-
-                    <div class="field">
-                        <label class="label">Mot de passe</label>
-                        <div class="ui left icon input">
-                            <input class="input" type="password" name="password" placeholder="********" />
-                            <i class="lock icon"></i>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <label class="label">Confirmez le mot de passe</label>
-                        <div class="ui left icon input">
-                            <input class="input" type="password" name="confirm_password" placeholder="********" />
-                            <i class="redo icon"></i>
-                        </div>
-                    </div>
-
-                    <button class="ui primary button">
-                        Modifier
-                    </button>
-                </form>
-            </div>
-        </div>
+{% block body %}
+{% if let Some(profile) = user %}
+<div class="mx-auto max-w-md text-center">
+    <div class="flex items-center justify-center gap-x-5">
+        {% if profile.avatar_url.len() > 0 %}
+        <img class="h-16 w-16 rounded-full" src="{{ profile.avatar_url }}">
+        {% endif %}
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+            Mon profil
+        </h2>
     </div>
-
-    {% else %}
-    <div class="ui negative message">
-        <div class="header">
-            Erreur inattendue
-        </div>
-        Veuillez réessayer plus tard
-    </div>
-    {% endif %}
+    <p class="mt-2 text-lg leading-8 text-gray-600">
+        Créé le {{ profile.created_at.date() }}
+    </p>
 </div>
 
-<script>
-    $('.ui.form').form({
-        fields: {
-            name: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre nom'
-                    }
-                ]
-            },
-            birthday: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre date de naissance'
-                    }
-                ]
-            },
-            mail: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre mail'
-                    },
-                    {
-                        type: 'regExp',
-                        value: /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/,
-                        prompt: 'Veuillez rentrer une adresse mail valide'
-                    }
-                ]
-            },
-            password: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez rentrer votre mot de passe'
-                    }
-                ]
-            },
-            confirm_password: {
-                rules: [
-                    {
-                        type: 'empty',
-                        prompt: 'Veuillez confirmer votre mot de passe'
-                    },
-                    {
-                        type: 'match[password]',
-                        prompt: 'La confirmation du mot de passe ne correspond pas'
+<div class="mx-auto max-w-md mt-5">
+    {{ profile_message|escape("none") }}
+</div>
 
-                    }
-                ]
-            },
-        }
-    });
-</script>
+<form class="mx-auto mt-8 max-w-md sm:mt-8" action="/profile" method="POST">
+    <div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+        <div class="sm:col-span-1">
+            <label for="name" class="block text-sm font-semibold leading-6 text-gray-900">
+                Nom
+            </label>
+            <div class="mt-2.5">
+                <input type="text" name="name" id="name" value="{{ profile.name }}" placeholder="ex: Yoda" required
+                    class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+        </div>
+
+        <div class="sm:col-span-1">
+            <label for="birthday" class="block text-sm font-semibold leading-6 text-gray-900">
+                Date de Naissance
+            </label>
+            <div class="mt-2.5">
+                <input type="date" name="birthday" id="birthday" value="{{ profile.birthday }}" required
+                    class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+        </div>
+
+        <div class="sm:col-span-full">
+            <div class="flex items-center justify-between">
+                <label for="mail" class="block text-sm font-semibold leading-6 text-gray-900">
+                    Adresse mail
+                </label>
+                <div class="text-sm">
+                    {% if ! profile.mail_is_confirmed %}
+                    <a href="{{ confirm_send_url }}" class="font-semibold text-indigo-600 hover:text-indigo-500">
+                        Renvoyer la confirmation du mail ?
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="mt-2.5">
+                <input type="text" id="mail" name="mail" value="{{ profile.mail }}" placeholder="ex: yoda@dagobah.edu"
+                    required
+                    class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+            {% if ! profile.mail_is_confirmed %}
+            <label for="mail" class="block text-sm leading-6 text-red-600">
+                L'adresse mail n'a pas été confirmée
+            </label>
+            {% endif %}
+        </div>
+
+        <div class="sm:col-span-full">
+            <label for="avatar_url" class="block text-sm font-semibold leading-6 text-gray-900">
+                URL de l'avatar
+            </label>
+            <div class="mt-2.5">
+                <input type="url" name="avatar_url" id="avatar_url" value="{{ profile.avatar_url }}"
+                    placeholder="ex: https//..."
+                    class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+        </div>
+
+        <div class="mt-3 sm:col-span-full">
+            <button type="submit"
+                class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                Je modifie mon profile
+            </button>
+        </div>
+    </div>
+</form>
+
+<div id="password_message" class="mx-auto max-w-md mt-5">
+    {{ password_message|escape("none") }}
+</div>
+
+<form class="mx-auto mt-8 max-w-md sm:mt-8" hx-post="/password" hx-target="#password_message">
+    <div class="grid grid-cols-1 gap-x-8 gap-y-6">
+        <div>
+            <label for="password" class="block text-sm font-semibold leading-6 text-gray-900">
+                Mot de passe
+            </label>
+            <div class="mt-2.5">
+                <input type="password" id="password" name="password" placeholder="*****************" required
+                    class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+        </div>
+
+        <div>
+            <label for="confirm_password" class="block text-sm font-semibold leading-6 text-gray-900">
+                Confirmation du mot de passe
+            </label>
+            <div class="mt-2.5">
+                <input type="password" id="confirm_password" name="confirm_password" placeholder="*****************"
+                    required
+                    class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
+            </div>
+        </div>
+
+        <div class="mt-3 sm:col-span-full">
+            <button type="submit"
+                class="block w-full rounded-md bg-indigo-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                Je modifie mon mot de passe
+            </button>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="mx-auto max-w-md text-center">
+    <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+        Mon profil
+    </h2>
+    <p class="mt-2 text-lg leading-8 text-gray-600">
+        Personne n'est connecté
+    </p>
+</div>
+{% endif %}
 {% endblock %}

@@ -1,15 +1,15 @@
 use askama_axum::{IntoResponse, Template};
 use axum::{extract::State, Form};
-use axum_extra::extract::{cookie::Cookie, CookieJar};
+use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
+    auth::new_session_into_response,
     general::{
-        go_back::GoBackButton,
         message::{Level, MessageBlock},
         navbar::NavBarBlock,
     },
-    utils::jwt::{IdClaims, TokenFactory},
+    utils::jwt::IdClaims,
     AppState,
 };
 
@@ -19,7 +19,6 @@ use super::{confirm::ConfirmationMail, User};
 #[template(path = "users/profile_page.html")]
 pub struct ProfilePage {
     navbar: NavBarBlock,
-    go_back: GoBackButton,
     user: Option<User>,
     confirm_send_url: String,
     profile_message: MessageBlock,
@@ -48,9 +47,6 @@ impl ProfilePage {
         ProfilePage {
             navbar: NavBarBlock {
                 claims: Some(claims),
-            },
-            go_back: GoBackButton {
-                back_url: "/".to_owned(),
             },
             user: user,
             confirm_send_url,
@@ -90,24 +86,22 @@ pub async fn update_profile_handler(
 
     match potentially_updated_user {
         Ok(updated_user) => {
-            let id_token = TokenFactory::for_authenticator(&state).generate_id_token(&updated_user);
+            match new_session_into_response(
+                cookies,
+                &state,
+                &updated_user,
+                Some("/profile".to_owned()),
+            ) {
+                Ok(response) => response.into_response(),
 
-            if let Ok(id_token) = id_token {
-                (
-                    cookies.add(Cookie::new("session_id", id_token.token)),
-                    ProfilePage::from(
-                        &state,
-                        id_token.claims,
-                        Some(updated_user),
-                        MessageBlock::empty(),
-                    )
-                    .await,
+                Err(error) => ProfilePage::from(
+                    &state,
+                    claims,
+                    Some(updated_user),
+                    MessageBlock::new(Level::Error, "", &error.to_string()),
                 )
-                    .into_response()
-            } else {
-                ProfilePage::from(&state, claims, None, MessageBlock::empty())
-                    .await
-                    .into_response()
+                .await
+                .into_response(),
             }
         }
 
