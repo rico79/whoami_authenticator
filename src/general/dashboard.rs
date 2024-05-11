@@ -1,19 +1,15 @@
 use askama_axum::{IntoResponse, Template};
 use axum::extract::State;
 
-use crate::{
-    apps::{app_list::AppListBlock, App},
-    utils::jwt::IdClaims,
-    AppState,
-};
+use crate::{apps::App, utils::jwt::IdClaims, AppState};
 
 use super::navbar::NavBarBlock;
 
 #[derive(Template)]
-#[template(path = "general/home_page.html")]
+#[template(path = "general/dashboard_page.html")]
 pub struct HomePage {
     navbar: NavBarBlock,
-    own_apps: AppListBlock,
+    own_apps: Vec<App>,
 }
 
 pub async fn get_handler(claims: IdClaims, State(state): State<AppState>) -> impl IntoResponse {
@@ -21,10 +17,6 @@ pub async fn get_handler(claims: IdClaims, State(state): State<AppState>) -> imp
         navbar: NavBarBlock {
             claims: Some(claims.clone()),
         },
-        own_apps: AppListBlock {
-            apps: App::select_own_apps(&state, &claims).await.unwrap(),
-            can_add: true,
-            back_url: "/home".to_owned(),
-        },
+        own_apps: App::select_own_apps(&state, &claims).await.unwrap(),
     }
 }

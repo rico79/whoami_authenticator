@@ -69,7 +69,7 @@ async fn http_server(
 
     let router = Router::new()
         .route("/", get(general::whoami::get_handler))
-        .route("/home", get(general::home::get_handler))
+        .route("/dashboard", get(general::dashboard::get_handler))
         .route("/send_confirm", get(users::confirm::send_confirm_handler))
         .route("/confirm_mail", get(users::confirm::confirm_mail_handler))
         .route(

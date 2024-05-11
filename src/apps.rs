@@ -1,5 +1,4 @@
 pub mod app;
-pub mod app_list;
 
 use axum::response::Redirect;
 use http::Uri;

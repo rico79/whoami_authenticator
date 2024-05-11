@@ -2,8 +2,7 @@ use std::fmt;
 
 use serde::Deserialize;
 
-pub mod go_back;
-pub mod home;
+pub mod dashboard;
 pub mod message;
 pub mod navbar;
 pub mod whoami;

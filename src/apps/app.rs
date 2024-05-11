@@ -7,21 +7,15 @@ use axum::{
 use serde::Deserialize;
 use time::OffsetDateTime;
 
-use crate::{
-    general::{go_back::GoBackButton, navbar::NavBarBlock},
-    utils::jwt::IdClaims,
-    AppState,
-};
+use crate::{utils::jwt::IdClaims, AppState};
 
 use super::App;
 
 #[derive(Template)]
-#[template(path = "apps/app_page.html")]
+#[template(path = "apps/app_block.html")]
 pub struct AppPage {
-    navbar: NavBarBlock,
     app: Option<App>,
     read_only: bool,
-    go_back: GoBackButton,
 }
 
 impl AppPage {
@@ -33,24 +27,16 @@ impl AppPage {
         }
     }
 
-    fn from_app(claims: &IdClaims, app: Option<App>, back_url: String) -> Result<Self, Self> {
+    fn from_app(claims: &IdClaims, app: Option<App>) -> Result<Self, Self> {
         match app {
             Some(app) => Ok(AppPage {
-                navbar: NavBarBlock {
-                    claims: Some(claims.clone()),
-                },
                 app: Some(app.clone()),
                 read_only: !app.can_be_updated_by(claims.user_id()),
-                go_back: GoBackButton { back_url },
             }),
 
             None => Ok(AppPage {
-                navbar: NavBarBlock {
-                    claims: Some(claims.clone()),
-                },
                 app: app.clone(),
                 read_only: !App::new(&claims.user_id()).can_be_updated_by(claims.user_id()),
-                go_back: GoBackButton { back_url },
             }),
         }
     }
@@ -59,22 +45,15 @@ impl AppPage {
         state: &AppState,
         claims: &IdClaims,
         app_id: Option<i32>,
-        back_url: String,
     ) -> Result<Self, Self> {
         match app_id {
-            Some(app_id) => Self::from_app(
-                claims,
-                App::select_from_app_id(&state, app_id).await.ok(),
-                back_url,
-            ),
+            Some(app_id) => {
+                Self::from_app(claims, App::select_from_app_id(&state, app_id).await.ok())
+            }
 
             None => Err(AppPage {
-                navbar: NavBarBlock {
-                    claims: Some(claims.clone()),
-                },
                 app: Some(App::new(&claims.user_id())),
                 read_only: false,
-                go_back: GoBackButton { back_url },
             }),
         }
     }
@@ -83,7 +62,6 @@ impl AppPage {
 #[derive(Deserialize)]
 pub struct QueryParams {
     id: Option<i32>,
-    back_url: String,
 }
 
 pub async fn get_handler(
@@ -91,7 +69,7 @@ pub async fn get_handler(
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    AppPage::from_app_id(&state, &claims, params.id, params.back_url).await
+    AppPage::from_app_id(&state, &claims, params.id).await
 }
 
 #[derive(Deserialize)]
@@ -104,7 +82,6 @@ pub struct PostForm {
     logo_endpoint: Option<String>,
     jwt_secret: Option<String>,
     jwt_seconds_to_expire: Option<i32>,
-    back_url: String,
 }
 
 pub async fn post_handler(
@@ -131,8 +108,7 @@ pub async fn post_handler(
             .save(&state, &claims)
             .await
             .ok(),
-            form.back_url,
         ),
-        None => AppPage::from_app_id(&state, &claims, Some(form.id), form.back_url).await,
+        None => AppPage::from_app_id(&state, &claims, Some(form.id)).await,
     }
 }
