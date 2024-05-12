@@ -4,12 +4,11 @@ use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
-    auth::redirect_to_app_endpoint_with_new_session_into_response,
+    auth::{redirect_to_app_endpoint_with_new_session_into_response, IdSession},
     general::{
         message::{Level, MessageBlock},
         navbar::NavBarBlock,
     },
-    utils::jwt::IdClaims,
     AppState,
 };
 
@@ -28,11 +27,11 @@ pub struct ProfilePage {
 impl ProfilePage {
     pub async fn from(
         state: &AppState,
-        claims: IdClaims,
+        id_session: IdSession,
         returned_user: Option<User>,
         profile_message: MessageBlock,
     ) -> Self {
-        let user = returned_user.or(User::select_from_id(&state.db_pool, claims.user_id())
+        let user = returned_user.or(User::select_from_id(&state.db_pool, id_session.user_id)
             .await
             .ok());
 
@@ -45,7 +44,7 @@ impl ProfilePage {
         };
 
         ProfilePage {
-            navbar: NavBarBlock::from(Some(claims)),
+            navbar: NavBarBlock::from(Some(id_session)),
             user: user,
             confirm_send_url,
             profile_message,
@@ -54,8 +53,11 @@ impl ProfilePage {
     }
 }
 
-pub async fn get_handler(claims: IdClaims, State(state): State<AppState>) -> impl IntoResponse {
-    ProfilePage::from(&state, claims, None, MessageBlock::empty()).await
+pub async fn get_handler(
+    id_session: IdSession,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    ProfilePage::from(&state, id_session, None, MessageBlock::empty()).await
 }
 
 #[derive(Deserialize)]
@@ -68,13 +70,13 @@ pub struct ProfileForm {
 
 pub async fn update_profile_handler(
     cookies: CookieJar,
-    claims: IdClaims,
+    id_session: IdSession,
     State(state): State<AppState>,
     Form(form): Form<ProfileForm>,
 ) -> impl IntoResponse {
     let potentially_updated_user = User::update_profile(
         &state.db_pool,
-        &claims.user_id(),
+        &id_session.user_id,
         &form.name,
         &form.birthday,
         &form.avatar_url,
@@ -95,7 +97,7 @@ pub async fn update_profile_handler(
 
                 Err(error) => ProfilePage::from(
                     &state,
-                    claims,
+                    id_session,
                     Some(updated_user),
                     MessageBlock::new(Level::Error, "", &error.to_string()),
                 )
@@ -106,7 +108,7 @@ pub async fn update_profile_handler(
 
         Err(error) => ProfilePage::from(
             &state,
-            claims,
+            id_session,
             None,
             MessageBlock::new(Level::Error, "", &error.to_string()),
         )
@@ -123,13 +125,13 @@ pub struct PasswordForm {
 
 /// Profile update handler
 pub async fn update_password_handler(
-    claims: IdClaims,
+    id_session: IdSession,
     State(state): State<AppState>,
     Form(form): Form<PasswordForm>,
 ) -> Result<MessageBlock, MessageBlock> {
     let _ = User::update_password(
         &state.db_pool,
-        &claims.user_id(),
+        &id_session.user_id,
         &form.password,
         &form.confirm_password,
     )

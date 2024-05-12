@@ -1,13 +1,19 @@
 use askama::Template;
 
-use crate::utils::jwt::IdClaims;
+use crate::auth::IdSession;
+
+use super::navbar::NavBarBlock;
 
 #[derive(Template)]
 #[template(path = "whoami_page.html")]
 pub struct WhoAmIPage {
-    claims: Option<IdClaims>,
+    navbar: NavBarBlock,
+    id_session: Option<IdSession>,
 }
 
-pub async fn get_handler(claims: Option<IdClaims>) -> WhoAmIPage {
-    WhoAmIPage { claims }
+pub async fn get_handler(id_session: Option<IdSession>) -> WhoAmIPage {
+    WhoAmIPage {
+        navbar: NavBarBlock::from(id_session.clone()),
+        id_session,
+    }
 }

@@ -1,21 +1,21 @@
 {% extends "main_page.html" %}
 
 {% block navbar %}
-{% include "general/navbar_block.html" %}
+{{ navbar|escape("none") }}
 {% endblock %}
 
 {% block body %}
 <div class="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56">
-    {% if let Some(claims) = claims %}
+    {% if let Some(id_session) = id_session %}
     <a href="/profile" class="flex flex-col items-center justify-center gap-x-5">
-        {% if claims.avatar.len() > 0 %}
-        <img class="h-16 w-16 rounded-full" src="{{ claims.avatar }}">
+        {% if id_session.avatar.len() > 0 %}
+        <img class="h-16 w-16 rounded-full" src="{{ id_session.avatar }}">
         {% endif %}
         <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-            {{ claims.name }}
+            {{ id_session.name }}
         </h1>
         <p class="mt-6 text-lg leading-8 text-gray-600">
-            {{ claims.mail }}
+            {{ id_session.mail }}
         </p>
     </a>
     {% else %}

@@ -7,7 +7,7 @@ use axum::{
 use serde::Deserialize;
 use time::OffsetDateTime;
 
-use crate::{general::navbar::NavBarBlock, utils::jwt::IdClaims, AppState};
+use crate::{auth::IdSession, general::navbar::NavBarBlock, AppState};
 
 use super::App;
 
@@ -28,35 +28,36 @@ impl AppPage {
         }
     }
 
-    fn from_app(claims: &IdClaims, app: Option<App>) -> Result<Self, Self> {
+    fn from_app(id_session: &IdSession, app: Option<App>) -> Result<Self, Self> {
         match app {
             Some(app) => Ok(AppPage {
-                navbar: NavBarBlock::from(Some(claims.clone())),
+                navbar: NavBarBlock::from(Some(id_session.clone())),
                 app: Some(app.clone()),
-                read_only: !app.can_be_updated_by(claims.user_id()),
+                read_only: !app.can_be_updated_by(id_session.user_id),
             }),
 
             None => Ok(AppPage {
-                navbar: NavBarBlock::from(Some(claims.clone())),
+                navbar: NavBarBlock::from(Some(id_session.clone())),
                 app: app.clone(),
-                read_only: !App::new(&claims.user_id()).can_be_updated_by(claims.user_id()),
+                read_only: !App::new(&id_session.user_id).can_be_updated_by(id_session.user_id),
             }),
         }
     }
 
     async fn from_app_id(
         state: &AppState,
-        claims: &IdClaims,
+        id_session: &IdSession,
         app_id: Option<i32>,
     ) -> Result<Self, Self> {
         match app_id {
-            Some(app_id) => {
-                Self::from_app(claims, App::select_from_app_id(&state, app_id).await.ok())
-            }
+            Some(app_id) => Self::from_app(
+                id_session,
+                App::select_from_app_id(&state, app_id).await.ok(),
+            ),
 
             None => Err(AppPage {
-                navbar: NavBarBlock::from(Some(claims.clone())),
-                app: Some(App::new(&claims.user_id())),
+                navbar: NavBarBlock::from(Some(id_session.clone())),
+                app: Some(App::new(&id_session.user_id)),
                 read_only: false,
             }),
         }
@@ -69,11 +70,11 @@ pub struct QueryParams {
 }
 
 pub async fn get_handler(
-    claims: IdClaims,
+    id_session: IdSession,
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> Result<impl IntoResponse, impl IntoResponse> {
-    AppPage::from_app_id(&state, &claims, params.id).await
+    AppPage::from_app_id(&state, &id_session, params.id).await
 }
 
 #[derive(Deserialize)]
@@ -89,14 +90,14 @@ pub struct PostForm {
 }
 
 pub async fn post_handler(
-    claims: IdClaims,
+    id_session: IdSession,
     State(state): State<AppState>,
     Form(form): Form<PostForm>,
 ) -> impl IntoResponse {
     // Check if read only (= name is missing)
     match form.name {
         Some(name) => AppPage::from_app(
-            &claims,
+            &id_session,
             App {
                 id: form.id,
                 name,
@@ -107,12 +108,12 @@ pub async fn post_handler(
                 jwt_secret: form.jwt_secret.unwrap_or("".to_owned()),
                 jwt_seconds_to_expire: form.jwt_seconds_to_expire.unwrap_or(0),
                 created_at: OffsetDateTime::now_utc(),
-                owner_id: Some(claims.user_id()),
+                owner_id: Some(id_session.user_id),
             }
-            .save(&state, &claims)
+            .save(&state, &id_session)
             .await
             .ok(),
         ),
-        None => AppPage::from_app_id(&state, &claims, Some(form.id)).await,
+        None => AppPage::from_app_id(&state, &id_session, Some(form.id)).await,
     }
 }

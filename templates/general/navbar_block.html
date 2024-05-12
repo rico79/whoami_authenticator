@@ -6,7 +6,7 @@
             </div>
         </div>
 
-        {% if let Some(claims) = claims %}
+        {% if let Some(id_session) = id_session %}
         <div class="flex">
             <button @click="menu_is_open = true" type="button" class="rounded-md p-2.5 text-gray-700">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
@@ -39,7 +39,7 @@
             </div>
             <div class="mt-6 flow-root">
                 <div class="-my-6 divide-y divide-gray-500/10">
-                    {% if let Some(claims) = claims %}
+                    {% if let Some(id_session) = id_session %}
                     <div class="space-y-2 py-6">
                         <a href="/owned_apps"
                             class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50">

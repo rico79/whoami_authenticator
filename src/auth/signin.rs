@@ -82,7 +82,7 @@ pub async fn get_handler(
     )
     .await;
 
-    let already_connected = extract_session_claims(&state, &cookies, &app_to_connect_to).is_ok();
+    let already_connected = extract_session_claims(&state, &cookies).is_ok();
 
     if already_connected {
         app_to_connect_to

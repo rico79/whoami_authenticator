@@ -3,18 +3,83 @@ pub mod signout;
 pub mod signup;
 
 use askama_axum::IntoResponse;
+use axum::extract::{FromRef, FromRequestParts, Request};
 use axum::response::Redirect;
+use axum::{async_trait, RequestPartsExt};
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
-use time::Duration;
+use core::fmt::Debug;
+use http::request::Parts;
+use sqlx::types::Uuid;
+use time::{Date, Duration};
+use tracing::log::error;
 
 use crate::apps::App;
+use crate::general::message::{Level, MessageBlock};
 use crate::general::AuthenticatorError;
 use crate::users::User;
 use crate::utils::jwt::{IdClaims, TokenFactory};
 use crate::AppState;
 
 const SESSION_TOKEN: &str = "session_token";
+
+#[derive(Clone, Debug)]
+pub struct IdSession {
+    pub user_id: Uuid,
+    pub name: String,
+    pub mail: String,
+    pub avatar: String,
+    pub birthday: Date,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for IdSession
+where
+    AppState: FromRef<S>,
+    S: Send + Sync + Debug,
+{
+    type Rejection = signin::SigninPage;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let state = parts
+            .extract_with_state::<AppState, _>(state)
+            .await
+            .unwrap();
+
+        let request_uri = Request::from_parts(parts.clone(), state.clone())
+            .uri()
+            .clone();
+
+        let cookie_jar = parts.extract::<CookieJar>().await.map_err(|error| {
+            error!("{:?}", error);
+            signin::SigninPage::for_app_with_redirect_and_message(
+                state.authenticator_app.clone(),
+                Some(request_uri.to_string()),
+                MessageBlock::new(
+                    Level::Error,
+                    "",
+                    &AuthenticatorError::InvalidToken.to_string(),
+                ),
+            )
+        })?;
+
+        let id_claims = extract_session_claims(&state, &cookie_jar).map_err(|error| {
+            signin::SigninPage::for_app_with_redirect_and_message(
+                state.authenticator_app.clone(),
+                Some(request_uri.to_string()),
+                MessageBlock::new(Level::Error, "", &error.to_string()),
+            )
+        })?;
+
+        Ok(IdSession {
+            user_id: id_claims.user_id(),
+            name: id_claims.name,
+            mail: id_claims.mail,
+            avatar: id_claims.avatar,
+            birthday: id_claims.birthday,
+        })
+    }
+}
 
 pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
     (
@@ -26,13 +91,13 @@ pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> imp
 pub fn extract_session_claims(
     state: &AppState,
     cookies: &CookieJar,
-    app: &App,
 ) -> Result<IdClaims, AuthenticatorError> {
     let token = cookies
         .get(SESSION_TOKEN)
         .ok_or(AuthenticatorError::InvalidToken)?;
 
-    let token = TokenFactory::for_app(state, app).extract_id_token(token.value().to_string())?;
+    let token =
+        TokenFactory::for_authenticator(state).extract_id_token(token.value().to_string())?;
 
     Ok(token.claims)
 }

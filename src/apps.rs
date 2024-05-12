@@ -10,7 +10,7 @@ use sqlx::{
 };
 use tracing::log::error;
 
-use crate::{general::AuthenticatorError, utils::jwt::IdClaims, AppState};
+use crate::{auth::IdSession, general::AuthenticatorError, AppState};
 
 #[derive(Clone, Debug, FromRow)]
 pub struct App {
@@ -127,7 +127,7 @@ impl App {
 
     pub async fn select_own_apps(
         state: &AppState,
-        claims: &IdClaims,
+        id_session: &IdSession,
     ) -> Result<Vec<Self>, AuthenticatorError> {
         let mut apps: Vec<App> = sqlx::query_as(
             "SELECT 
@@ -147,19 +147,18 @@ impl App {
             ORDER BY
                 name",
         )
-        .bind(claims.user_id())
+        .bind(id_session.user_id)
         .fetch_all(&state.db_pool)
         .await
         .map_err(|error| {
             error!(
                 "Selecting apps for owner {} -> {:?}",
-                claims.user_id(),
-                error
+                id_session.user_id, error
             );
             AuthenticatorError::DatabaseError
         })?;
 
-        let user_is_authenticator_app_owner = claims.mail == state.owner_mail;
+        let user_is_authenticator_app_owner = id_session.mail == state.owner_mail;
 
         if user_is_authenticator_app_owner {
             apps.push(state.authenticator_app.clone())
@@ -208,7 +207,7 @@ impl App {
     pub async fn save(
         &self,
         state: &AppState,
-        claims: &IdClaims,
+        id_session: &IdSession,
     ) -> Result<Self, AuthenticatorError> {
         if self.is_authenticator_app() {
             return Ok(state.authenticator_app.clone());
@@ -245,7 +244,7 @@ impl App {
             .bind(self.logo_endpoint.clone())
             .bind(self.jwt_secret.clone())
             .bind(self.jwt_seconds_to_expire.clone())
-            .bind(claims.user_id())
+            .bind(id_session.user_id)
             .fetch_one(&state.db_pool)
             .await
             .map_err(|error| {

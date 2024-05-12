@@ -1,12 +1,5 @@
 use core::fmt::Debug;
 
-use axum::{
-    async_trait,
-    extract::{FromRef, FromRequestParts, Request},
-    http::request::Parts,
-    RequestPartsExt,
-};
-use axum_extra::extract::CookieJar;
 use jsonwebtoken::{
     decode, encode, errors::ErrorKind::ExpiredSignature, DecodingKey, EncodingKey, Header,
     Validation,
@@ -16,16 +9,7 @@ use sqlx::types::Uuid;
 use time::{Date, OffsetDateTime};
 use tracing::error;
 
-use crate::{
-    apps::App,
-    auth::{extract_session_claims, signin},
-    general::{
-        message::{Level, MessageBlock},
-        AuthenticatorError,
-    },
-    users::User,
-    AppState,
-};
+use crate::{apps::App, general::AuthenticatorError, users::User, AppState};
 
 pub struct Token<Claims> {
     pub claims: Claims,
@@ -132,46 +116,5 @@ pub struct IdClaims {
 impl IdClaims {
     pub fn user_id(&self) -> Uuid {
         Uuid::parse_str(&self.sub).unwrap()
-    }
-}
-
-#[async_trait]
-impl<S> FromRequestParts<S> for IdClaims
-where
-    AppState: FromRef<S>,
-    S: Send + Sync + Debug,
-{
-    type Rejection = signin::SigninPage;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let state = parts
-            .extract_with_state::<AppState, _>(state)
-            .await
-            .unwrap();
-
-        let request_uri = Request::from_parts(parts.clone(), state.clone())
-            .uri()
-            .clone();
-
-        let cookie_jar = parts.extract::<CookieJar>().await.map_err(|error| {
-            error!("{:?}", error);
-            signin::SigninPage::for_app_with_redirect_and_message(
-                state.authenticator_app.clone(),
-                Some(request_uri.to_string()),
-                MessageBlock::new(
-                    Level::Error,
-                    "",
-                    &AuthenticatorError::InvalidToken.to_string(),
-                ),
-            )
-        })?;
-
-        extract_session_claims(&state, &cookie_jar, &state.authenticator_app).map_err(|error| {
-            signin::SigninPage::for_app_with_redirect_and_message(
-                state.authenticator_app.clone(),
-                Some(request_uri.to_string()),
-                MessageBlock::new(Level::Error, "", &error.to_string()),
-            )
-        })
     }
 }
