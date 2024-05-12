@@ -44,6 +44,7 @@ impl TokenFactory {
             mail: user.mail.clone(),
             avatar: user.avatar_url.clone(),
             birthday: user.birthday.into(),
+            mail_is_confirmed: user.mail_is_confirmed.into(),
             iss: self.authenticator_app.base_url.clone(),
             aud: self.app.base_url.clone(),
             iat: now,
@@ -111,6 +112,7 @@ pub struct IdClaims {
     pub mail: String,
     pub avatar: String,
     pub birthday: Date,
+    pub mail_is_confirmed: bool,
 }
 
 impl IdClaims {
