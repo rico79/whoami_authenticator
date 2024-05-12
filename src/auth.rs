@@ -25,7 +25,6 @@ const SESSION_TOKEN: &str = "session_token";
 
 #[derive(Clone, Debug)]
 pub struct IdSession {
-    cookies: CookieJar,
     pub user_id: Uuid,
     pub name: String,
     pub mail: String,
@@ -77,9 +76,9 @@ where
 }
 
 impl IdSession {
-    pub fn remove_and_redirect_to(&self, redirect_to: &str) -> impl IntoResponse {
+    pub fn remove_and_redirect_to(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
         (
-            self.cookies
+            cookies
                 .clone()
                 .remove(Cookie::build(SESSION_TOKEN).path("/")),
             Redirect::to(redirect_to),
@@ -96,7 +95,6 @@ impl IdSession {
             .claims;
 
         Ok(IdSession {
-            cookies,
             user_id: id_claims.user_id(),
             name: id_claims.name,
             mail: id_claims.mail,
