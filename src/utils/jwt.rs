@@ -37,7 +37,11 @@ impl TokenFactory {
         self.generate_id_token_with_expire(user, self.app.jwt_seconds_to_expire)
     }
 
-    pub fn generate_id_token_with_expire(&self, user: &User, seconds_to_expire: i32) -> Result<Token<IdClaims>, AuthenticatorError> {
+    pub fn generate_id_token_with_expire(
+        &self,
+        user: &User,
+        seconds_to_expire: i32,
+    ) -> Result<Token<IdClaims>, AuthenticatorError> {
         let now = OffsetDateTime::now_utc().unix_timestamp();
 
         let expiration_time = now + i64::from(seconds_to_expire);
