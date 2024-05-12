@@ -37,10 +37,11 @@ pub fn extract_session_claims(
     Ok(token.claims)
 }
 
-pub fn new_session_into_response(
+pub fn redirect_to_app_endpoint_with_new_session_into_response(
     cookies: CookieJar,
     state: &AppState,
     user: &User,
+    app_to_redirect: &App,
     requested_endpoint: Option<String>,
 ) -> Result<impl IntoResponse, AuthenticatorError> {
     let session_duration = state.authenticator_app.jwt_seconds_to_expire.clone();
@@ -56,8 +57,7 @@ pub fn new_session_into_response(
         .http_only(true)
         .max_age(Duration::seconds(session_duration.into()));
 
-    let redirect = state
-        .authenticator_app
+    let redirect = app_to_redirect
         .redirect_to_endpoint(requested_endpoint)
         .clone();
 

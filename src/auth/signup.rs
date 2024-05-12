@@ -13,7 +13,7 @@ use crate::{
     AppState,
 };
 
-use super::new_session_into_response;
+use super::redirect_to_app_endpoint_with_new_session_into_response;
 
 #[derive(Template)]
 #[template(path = "auth/signup_page.html")]
@@ -112,9 +112,13 @@ pub async fn post_handler(
 
     let _ = ConfirmationMail::from(&state, created_user.clone(), app.clone()).send();
 
-    if let Ok(redirect_with_session) =
-        new_session_into_response(cookies, &state, &created_user, None)
-    {
+    if let Ok(redirect_with_session) = redirect_to_app_endpoint_with_new_session_into_response(
+        cookies,
+        &state,
+        &created_user,
+        &app,
+        None,
+    ) {
         Ok(redirect_with_session.into_response())
     } else {
         Ok(app.redirect_to().into_response())

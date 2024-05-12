@@ -16,7 +16,7 @@ use crate::{
     AppState,
 };
 
-use super::{extract_session_claims, new_session_into_response};
+use super::{extract_session_claims, redirect_to_app_endpoint_with_new_session_into_response};
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]
@@ -140,13 +140,18 @@ pub async fn post_handler(
         ));
     }
 
-    new_session_into_response(cookies, &state, &user, form.requested_endpoint.clone()).map_err(
-        |error| {
-            SigninPage::for_app_from_form_with_message(
-                app_to_connect,
-                form,
-                MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
-            )
-        },
+    redirect_to_app_endpoint_with_new_session_into_response(
+        cookies,
+        &state,
+        &user,
+        &app_to_connect,
+        form.requested_endpoint.clone(),
     )
+    .map_err(|error| {
+        SigninPage::for_app_from_form_with_message(
+            app_to_connect,
+            form,
+            MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
+        )
+    })
 }
