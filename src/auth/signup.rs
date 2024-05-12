@@ -62,16 +62,23 @@ pub struct QueryParams {
 }
 
 pub async fn get_handler(
+    id_session: Option<IdSession>,
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
-    let app = App::select_app_or_authenticator(
+    let app_to_connect_to = App::select_app_or_authenticator(
         &state,
         params.app_id.unwrap_or(state.authenticator_app.id),
     )
     .await;
 
-    SignupPage::from_query(params, app)
+    let already_connected = id_session.is_some();
+
+    if already_connected {
+        app_to_connect_to.redirect_to_endpoint(None).into_response()
+    } else {
+        SignupPage::from_query(params, app_to_connect_to).into_response()
+    }
 }
 
 #[derive(Deserialize)]
