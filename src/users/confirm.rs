@@ -150,7 +150,7 @@ impl ConfirmationMail {
 
     pub fn send(&self) -> Result<bool, AuthenticatorError> {
         let id_token = TokenFactory::for_app(&self.state, &self.app)
-            .generate_id_token(&self.user)
+            .generate_id_token_with_expire(&self.user, 900)
             .map_err(|_| AuthenticatorError::MailConfirmationFailed)?
             .token;
 
@@ -169,7 +169,7 @@ Nous vous souhaitons la bienvenue.
 Pour pouvoir continuer et utiliser nos app, veuillez confirmer votre mail en cliquant sur le lien suivant :
 {}
 
-Notez que ce code n'est valable qu'une heure.
+Notez que ce code n'est valable que 15 minutes.
 
 En vous souhaitant une excellente journée !!
 
