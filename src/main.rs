@@ -78,6 +78,7 @@ async fn http_server(
             get(auth::signin::get_handler).post(auth::signin::post_handler),
         )
         .route("/signout", get(auth::signout::get_handler))
+        .route("/authorized", get(auth::authorized::get_handler))
         .route("/send_confirm", get(users::confirm::send_confirm_handler))
         .route("/confirm_mail", get(users::confirm::confirm_mail_handler))
         .route(

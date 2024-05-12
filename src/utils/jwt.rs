@@ -115,7 +115,7 @@ pub struct IdClaims {
     iss: String,
     aud: String,
     iat: i64,
-    exp: i64,
+    pub exp: i64,
     pub name: String,
     pub mail: String,
     pub avatar: String,

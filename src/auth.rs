@@ -1,3 +1,4 @@
+pub mod authorized;
 pub mod signin;
 pub mod signout;
 pub mod signup;
@@ -11,7 +12,7 @@ use axum_extra::extract::CookieJar;
 use core::fmt::Debug;
 use http::request::Parts;
 use sqlx::types::Uuid;
-use time::{Date, Duration};
+use time::{Date, Duration, OffsetDateTime};
 use tracing::log::error;
 
 use crate::apps::App;
@@ -30,6 +31,7 @@ pub struct IdSession {
     pub mail: String,
     pub avatar: String,
     pub birthday: Date,
+    pub seconds_to_expire: i64,
 }
 
 #[async_trait]
@@ -94,12 +96,15 @@ impl IdSession {
             .extract_id_token(token.value().to_string())?
             .claims;
 
+        let now = OffsetDateTime::now_utc().unix_timestamp();
+
         Ok(IdSession {
             user_id: id_claims.user_id(),
             name: id_claims.name,
             mail: id_claims.mail,
             avatar: id_claims.avatar,
             birthday: id_claims.birthday,
+            seconds_to_expire: id_claims.exp - now,
         })
     }
 
