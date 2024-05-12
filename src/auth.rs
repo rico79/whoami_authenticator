@@ -18,13 +18,14 @@ use crate::apps::App;
 use crate::general::message::{Level, MessageBlock};
 use crate::general::AuthenticatorError;
 use crate::users::User;
-use crate::utils::jwt::{IdClaims, TokenFactory};
+use crate::utils::jwt::TokenFactory;
 use crate::AppState;
 
 const SESSION_TOKEN: &str = "session_token";
 
 #[derive(Clone, Debug)]
 pub struct IdSession {
+    cookies: CookieJar,
     pub user_id: Uuid,
     pub name: String,
     pub mail: String,
@@ -63,7 +64,7 @@ where
             )
         })?;
 
-        let id_claims = extract_session_claims(&state, &cookie_jar).map_err(|error| {
+        let id_session = Self::extract(state.clone(), cookie_jar).map_err(|error| {
             signin::SigninPage::for_app_with_redirect_and_message(
                 state.authenticator_app.clone(),
                 Some(request_uri.to_string()),
@@ -71,7 +72,31 @@ where
             )
         })?;
 
+        Ok(id_session)
+    }
+}
+
+impl IdSession {
+    pub fn remove_and_redirect_to(&self, redirect_to: &str) -> impl IntoResponse {
+        (
+            self.cookies
+                .clone()
+                .remove(Cookie::build(SESSION_TOKEN).path("/")),
+            Redirect::to(redirect_to),
+        )
+    }
+
+    fn extract(state: AppState, cookies: CookieJar) -> Result<Self, AuthenticatorError> {
+        let token = cookies
+            .get(SESSION_TOKEN)
+            .ok_or(AuthenticatorError::InvalidToken)?;
+
+        let id_claims = TokenFactory::for_authenticator(&state)
+            .extract_id_token(token.value().to_string())?
+            .claims;
+
         Ok(IdSession {
+            cookies,
             user_id: id_claims.user_id(),
             name: id_claims.name,
             mail: id_claims.mail,
@@ -79,54 +104,33 @@ where
             birthday: id_claims.birthday,
         })
     }
-}
 
-pub fn remove_session_and_redirect(cookies: CookieJar, redirect_to: &str) -> impl IntoResponse {
-    (
-        cookies.remove(Cookie::build(SESSION_TOKEN).path("/")),
-        Redirect::to(redirect_to),
-    )
-}
+    pub fn set_with_redirect_to_app_endpoint(
+        cookies: CookieJar,
+        state: &AppState,
+        user: &User,
+        app_to_redirect: &App,
+        requested_endpoint: Option<String>,
+    ) -> Result<impl IntoResponse, AuthenticatorError> {
+        let session_duration = state.authenticator_app.jwt_seconds_to_expire.clone();
 
-pub fn extract_session_claims(
-    state: &AppState,
-    cookies: &CookieJar,
-) -> Result<IdClaims, AuthenticatorError> {
-    let token = cookies
-        .get(SESSION_TOKEN)
-        .ok_or(AuthenticatorError::InvalidToken)?;
+        let id_token = TokenFactory::for_authenticator(state).generate_id_token(user)?;
 
-    let token =
-        TokenFactory::for_authenticator(state).extract_id_token(token.value().to_string())?;
+        let secure_domain = state.authenticator_app.domain()?;
 
-    Ok(token.claims)
-}
+        let cookie = Cookie::build((SESSION_TOKEN, id_token.token))
+            .domain(secure_domain)
+            .path("/")
+            .secure(true)
+            .http_only(true)
+            .max_age(Duration::seconds(session_duration.into()));
 
-pub fn redirect_to_app_endpoint_with_new_session_into_response(
-    cookies: CookieJar,
-    state: &AppState,
-    user: &User,
-    app_to_redirect: &App,
-    requested_endpoint: Option<String>,
-) -> Result<impl IntoResponse, AuthenticatorError> {
-    let session_duration = state.authenticator_app.jwt_seconds_to_expire.clone();
+        let redirect = app_to_redirect
+            .redirect_to_endpoint(requested_endpoint)
+            .clone();
 
-    let id_token = TokenFactory::for_authenticator(state).generate_id_token(user)?;
+        let response_with_session_cookie = (cookies.add(cookie), redirect);
 
-    let secure_domain = state.authenticator_app.domain()?;
-
-    let cookie = Cookie::build((SESSION_TOKEN, id_token.token))
-        .domain(secure_domain)
-        .path("/")
-        .secure(true)
-        .http_only(true)
-        .max_age(Duration::seconds(session_duration.into()));
-
-    let redirect = app_to_redirect
-        .redirect_to_endpoint(requested_endpoint)
-        .clone();
-
-    let response_with_session_cookie = (cookies.add(cookie), redirect);
-
-    Ok(response_with_session_cookie)
+        Ok(response_with_session_cookie)
+    }
 }

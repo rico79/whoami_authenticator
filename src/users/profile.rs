@@ -4,7 +4,7 @@ use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
 use crate::{
-    auth::{redirect_to_app_endpoint_with_new_session_into_response, IdSession},
+    auth::IdSession,
     general::{
         message::{Level, MessageBlock},
         navbar::NavBarBlock,
@@ -86,7 +86,7 @@ pub async fn update_profile_handler(
 
     match potentially_updated_user {
         Ok(updated_user) => {
-            match redirect_to_app_endpoint_with_new_session_into_response(
+            match IdSession::set_with_redirect_to_app_endpoint(
                 cookies,
                 &state,
                 &updated_user,

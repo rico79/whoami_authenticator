@@ -16,7 +16,7 @@ use crate::{
     AppState,
 };
 
-use super::{extract_session_claims, redirect_to_app_endpoint_with_new_session_into_response};
+use super::IdSession;
 
 #[derive(Template)]
 #[template(path = "auth/signin_page.html")]
@@ -72,7 +72,7 @@ pub struct QueryParams {
 }
 
 pub async fn get_handler(
-    cookies: CookieJar,
+    id_session: Option<IdSession>,
     State(state): State<AppState>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
@@ -82,7 +82,7 @@ pub async fn get_handler(
     )
     .await;
 
-    let already_connected = extract_session_claims(&state, &cookies).is_ok();
+    let already_connected = id_session.is_some();
 
     if already_connected {
         app_to_connect_to
@@ -140,7 +140,7 @@ pub async fn post_handler(
         ));
     }
 
-    redirect_to_app_endpoint_with_new_session_into_response(
+    IdSession::set_with_redirect_to_app_endpoint(
         cookies,
         &state,
         &user,
