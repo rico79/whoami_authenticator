@@ -1,6 +1,7 @@
 mod apps;
 mod auth;
 mod general;
+mod open_id;
 mod users;
 mod utils;
 
@@ -78,7 +79,6 @@ async fn http_server(
             get(auth::signin::get_handler).post(auth::signin::post_handler),
         )
         .route("/signout", get(auth::signout::get_handler))
-        .route("/authorized", get(auth::authorized::get_handler))
         .route("/send_confirm", get(users::confirm::send_confirm_handler))
         .route("/confirm_mail", get(users::confirm::confirm_mail_handler))
         .route(
@@ -91,6 +91,7 @@ async fn http_server(
             "/app",
             get(apps::app::get_handler).post(apps::app::post_handler),
         )
+        .route("/authorize", get(open_id::authorize_handler))
         .nest_service("/assets", ServeDir::new("assets"))
         .nest_service("/favicon.ico", ServeFile::new("assets/favicon.ico"))
         .with_state(state);
