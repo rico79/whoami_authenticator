@@ -91,7 +91,7 @@ async fn http_server(
             "/app",
             get(apps::app::get_handler).post(apps::app::post_handler),
         )
-        .route("/authorize", get(open_id::authorize_handler))
+        .route("/openid/authorize", get(open_id::authorize_handler))
         .nest_service("/assets", ServeDir::new("assets"))
         .nest_service("/favicon.ico", ServeFile::new("assets/favicon.ico"))
         .with_state(state);
