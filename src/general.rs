@@ -8,6 +8,7 @@ pub mod whoami;
 
 #[derive(Debug, Deserialize)]
 pub enum AuthenticatorError {
+    Unauthorized,
     DatabaseError,
     CryptoError,
     NotExistingUser,
@@ -57,6 +58,7 @@ impl fmt::Display for AuthenticatorError {
             AuthenticatorError::MailNotSent => "Mail non envoyé",
             AuthenticatorError::AppInvalidUri => "L'Url de l'application est invalide",
             AuthenticatorError::InvalidDate => "Date invalide",
+            AuthenticatorError::Unauthorized => "Vous n'avez pas les droits",
         };
 
         write!(f, "{}", message)

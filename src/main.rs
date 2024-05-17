@@ -1,7 +1,7 @@
 mod apps;
 mod auth;
 mod general;
-mod open_id;
+mod openid;
 mod users;
 mod utils;
 
@@ -91,7 +91,10 @@ async fn http_server(
             "/app",
             get(apps::app::get_handler).post(apps::app::post_handler),
         )
-        .route("/openid/authorize", get(open_id::authorize_handler))
+        .route(
+            "/openid/authorize",
+            get(openid::authorize::get_handler).post(openid::authorize::post_handler),
+        )
         .nest_service("/assets", ServeDir::new("assets"))
         .nest_service("/favicon.ico", ServeFile::new("assets/favicon.ico"))
         .with_state(state);

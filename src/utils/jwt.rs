@@ -57,6 +57,7 @@ impl TokenFactory {
             aud: self.app.base_url.clone(),
             iat: now,
             exp: expiration_time,
+            auth_time: now,
         };
 
         let generated_token = encode(
@@ -106,15 +107,18 @@ impl TokenFactory {
 }
 
 /// sub = subject -> user unique id
-/// iss = issuer -> company name of the auth server
+/// iss = issuer -> company url of the auth server
+/// aud = audience -> client id of the app requested auth
 /// iat = issued at -> date of the token generation
 /// exp = expiration -> end date of the token
+/// auth_time = authentication time -> time when the End-User authentication occurred.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct IdClaims {
     pub sub: String,
     iss: String,
     aud: String,
     iat: i64,
+    auth_time: i64,
     pub exp: i64,
     pub name: String,
     pub mail: String,

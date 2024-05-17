@@ -28,18 +28,19 @@ impl AppPage {
         }
     }
 
-    fn from_app(id_session: &IdSession, app: Option<App>) -> Result<Self, Self> {
+    fn from_app(state: &AppState, id_session: &IdSession, app: Option<App>) -> Result<Self, Self> {
         match app {
             Some(app) => Ok(AppPage {
-                navbar: NavBarBlock::from(Some(id_session.clone())),
+                navbar: NavBarBlock::from(state, Some(id_session.clone())),
                 app: Some(app.clone()),
-                read_only: !app.can_be_updated_by(id_session.user_id),
+                read_only: (!app.can_be_updated_by(id_session.user_id) && !app.is_new())
+                    || (!App::can_be_created_by(state, id_session.mail.clone()) && app.is_new()),
             }),
 
             None => Ok(AppPage {
-                navbar: NavBarBlock::from(Some(id_session.clone())),
+                navbar: NavBarBlock::from(state, Some(id_session.clone())),
                 app: app.clone(),
-                read_only: !App::new(&id_session.user_id).can_be_updated_by(id_session.user_id),
+                read_only: !App::can_be_created_by(state, id_session.mail.clone()),
             }),
         }
     }
@@ -51,14 +52,15 @@ impl AppPage {
     ) -> Result<Self, Self> {
         match app_id {
             Some(app_id) => Self::from_app(
+                state,
                 id_session,
                 App::select_from_app_id(&state, app_id).await.ok(),
             ),
 
             None => Err(AppPage {
-                navbar: NavBarBlock::from(Some(id_session.clone())),
+                navbar: NavBarBlock::from(state, Some(id_session.clone())),
                 app: Some(App::new(&id_session.user_id)),
-                read_only: false,
+                read_only: !App::can_be_created_by(state, id_session.mail.clone()),
             }),
         }
     }
@@ -97,6 +99,7 @@ pub async fn post_handler(
     // Check if read only (= name is missing)
     match form.name {
         Some(name) => AppPage::from_app(
+            &state,
             &id_session,
             App {
                 id: form.id,

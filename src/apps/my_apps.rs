@@ -15,7 +15,7 @@ pub async fn get_handler(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     MyAppsPage {
-        navbar: NavBarBlock::from(Some(id_session.clone())),
+        navbar: NavBarBlock::from(&state, Some(id_session.clone())),
         my_apps: App::select_own_apps(&state, &id_session).await.unwrap(),
     }
 }

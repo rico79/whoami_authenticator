@@ -1,6 +1,7 @@
 use askama::Template;
+use axum::extract::State;
 
-use crate::auth::IdSession;
+use crate::{auth::IdSession, AppState};
 
 use super::navbar::NavBarBlock;
 
@@ -11,9 +12,12 @@ pub struct WhoAmIPage {
     id_session: Option<IdSession>,
 }
 
-pub async fn get_handler(id_session: Option<IdSession>) -> WhoAmIPage {
+pub async fn get_handler(
+    id_session: Option<IdSession>,
+    State(state): State<AppState>,
+) -> WhoAmIPage {
     WhoAmIPage {
-        navbar: NavBarBlock::from(id_session.clone()),
+        navbar: NavBarBlock::from(&state, id_session.clone()),
         id_session,
     }
 }

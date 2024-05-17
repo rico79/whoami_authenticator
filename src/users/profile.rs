@@ -44,7 +44,7 @@ impl ProfilePage {
         };
 
         ProfilePage {
-            navbar: NavBarBlock::from(Some(id_session)),
+            navbar: NavBarBlock::from(state, Some(id_session)),
             user: user,
             confirm_send_url,
             profile_message,

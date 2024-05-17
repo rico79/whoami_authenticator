@@ -42,6 +42,10 @@ impl App {
         }
     }
 
+    pub fn can_be_created_by(state: &AppState, user_mail: String) -> bool {
+        state.owner_mail == user_mail
+    }
+
     pub fn is_new(&self) -> bool {
         self.id < 0
     }
@@ -214,6 +218,10 @@ impl App {
         }
 
         if self.is_new() {
+            if !Self::can_be_created_by(state, id_session.mail.clone()) {
+                return Err(AuthenticatorError::Unauthorized);
+            }
+
             let inserted_app: App = sqlx::query_as(
                 "INSERT INTO apps (
                     name, 
@@ -254,6 +262,10 @@ impl App {
 
             Ok(inserted_app)
         } else {
+            if !self.can_be_updated_by(id_session.user_id.clone()) {
+                return Err(AuthenticatorError::Unauthorized);
+            }
+
             let updated_app: App = sqlx::query_as(
                 "UPDATE apps
                 SET
