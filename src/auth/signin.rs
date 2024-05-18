@@ -66,9 +66,9 @@ impl SigninPage {
 
 #[derive(Deserialize)]
 pub struct QueryParams {
-    mail: Option<String>,
-    app_id: Option<i32>,
-    requested_endpoint: Option<String>,
+    pub mail: Option<String>,
+    pub app_id: Option<i32>,
+    pub requested_endpoint: Option<String>,
 }
 
 pub async fn get_handler(
@@ -140,11 +140,10 @@ pub async fn post_handler(
         ));
     }
 
-    IdSession::set_with_redirect_to_app_endpoint(
+    IdSession::set_with_redirect_to_endpoint(
         cookies,
         &state,
         &user,
-        &app_to_connect,
         form.requested_endpoint.clone(),
     )
     .map_err(|error| {

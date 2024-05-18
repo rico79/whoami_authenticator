@@ -120,7 +120,7 @@ pub async fn post_handler(
     let _ = ConfirmationMail::from(&state, created_user.clone(), app.clone()).send();
 
     if let Ok(redirect_with_session) =
-        IdSession::set_with_redirect_to_app_endpoint(cookies, &state, &created_user, &app, None)
+        IdSession::set_with_redirect_to_endpoint(cookies, &state, &created_user, None)
     {
         Ok(redirect_with_session.into_response())
     } else {

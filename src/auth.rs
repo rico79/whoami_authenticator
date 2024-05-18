@@ -14,7 +14,6 @@ use sqlx::types::Uuid;
 use time::{Date, Duration, OffsetDateTime};
 use tracing::log::error;
 
-use crate::apps::App;
 use crate::general::message::{Level, MessageBlock};
 use crate::general::AuthenticatorError;
 use crate::users::User;
@@ -107,11 +106,10 @@ impl IdSession {
         })
     }
 
-    pub fn set_with_redirect_to_app_endpoint(
+    pub fn set_with_redirect_to_endpoint(
         cookies: CookieJar,
         state: &AppState,
         user: &User,
-        app_to_redirect: &App,
         requested_endpoint: Option<String>,
     ) -> Result<impl IntoResponse, AuthenticatorError> {
         let session_duration = state.authenticator_app.jwt_seconds_to_expire.clone();
@@ -127,7 +125,8 @@ impl IdSession {
             .http_only(true)
             .max_age(Duration::seconds(session_duration.into()));
 
-        let redirect = app_to_redirect
+        let redirect = state
+            .authenticator_app
             .redirect_to_endpoint(requested_endpoint)
             .clone();
 

@@ -86,11 +86,10 @@ pub async fn update_profile_handler(
 
     match potentially_updated_user {
         Ok(updated_user) => {
-            match IdSession::set_with_redirect_to_app_endpoint(
+            match IdSession::set_with_redirect_to_endpoint(
                 cookies,
                 &state,
                 &updated_user,
-                &state.authenticator_app,
                 Some("/profile".to_owned()),
             ) {
                 Ok(response) => response.into_response(),
