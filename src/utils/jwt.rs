@@ -54,7 +54,7 @@ impl TokenFactory {
             birthday: user.birthday.into(),
             mail_is_confirmed: user.mail_is_confirmed.into(),
             iss: self.authenticator_app.base_url.clone(),
-            aud: self.app.base_url.clone(),
+            aud: self.app.id.to_string(),
             iat: now,
             exp: expiration_time,
             auth_time: now,
@@ -77,14 +77,12 @@ impl TokenFactory {
     }
 
     pub fn extract_id_token(&self, token: String) -> Result<Token<IdClaims>, AuthenticatorError> {
-        let validate_urls = [
-            self.authenticator_app.base_url.clone(),
-            self.app.base_url.clone(),
-        ];
+        let validate_issuer = [self.authenticator_app.base_url.clone()];
+        let validate_audience = [self.app.id.to_string()];
 
         let mut validation = Validation::default();
-        validation.set_issuer(&validate_urls);
-        validation.set_audience(&validate_urls);
+        validation.set_issuer(&validate_issuer);
+        validation.set_audience(&validate_audience);
 
         let decoded_token = decode::<IdClaims>(
             &token,
