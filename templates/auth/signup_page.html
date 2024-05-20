@@ -18,7 +18,10 @@
 </div>
 
 <form class="mx-auto mt-8 max-w-md sm:mt-8" action="/signup" method="POST">
-    <input class="input" type="hidden" name="app_id" value="{{ app.id }}" />
+    {% if requested_endpoint.len() > 0 %}
+    <input type="hidden" name="requested_endpoint" value="{{ requested_endpoint }}" />
+    {% endif %}
+    <input type="hidden" name="app_id" value="{{ app.id }}" />
 
     <div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
         <div class="sm:col-span-1">
@@ -82,7 +85,7 @@
         <div class="mx-auto sm:col-span-full">
             <label class="text-sm leading-6 text-gray-600 text-center">
                 Déjà inscrit ? Je vais plutôt
-                <a href="/signin?app_id={{ app.id }}" class="font-semibold text-indigo-600">
+                <a href="{{ signin_link }}" class="font-semibold text-indigo-600">
                     me connecter
                 </a>.
             </label>

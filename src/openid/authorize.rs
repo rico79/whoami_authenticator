@@ -49,14 +49,15 @@ pub async fn authorize_handler(
     auth_request: AuthenticationRequest,
     request_uri: Uri,
 ) -> Result<impl IntoResponse, OpenIdConnectError> {
-    let redirect_uri = validate_redirect_uri(auth_request.redirect_uri)?;
+    let redirect_uri = validate_redirect_uri(auth_request.redirect_uri.clone())?;
 
-    let response_type = validate_response_type(auth_request.response_type, redirect_uri.clone())?;
+    let response_type =
+        validate_response_type(auth_request.response_type.clone(), redirect_uri.clone())?;
 
-    let scope = validate_scope(auth_request.scope, redirect_uri.clone())?;
+    let scope = validate_scope(auth_request.scope.clone(), redirect_uri.clone())?;
 
     let app_to_connect_to =
-        validate_client_id(&state, auth_request.client_id, redirect_uri.clone()).await?;
+        validate_client_id(&state, auth_request.client_id.clone(), redirect_uri.clone()).await?;
 
     let already_connected = id_session.is_some();
 
@@ -68,12 +69,20 @@ pub async fn authorize_handler(
             )))
             .into_response())
     } else {
+        let authorize_request_endpoint = authorize_request_endpoint_with_params(
+            request_uri,
+            scope,
+            response_type,
+            app_to_connect_to.id.to_string(),
+            redirect_uri.to_string(),
+        );
+
         Ok(SigninPage::for_app_from_query(
             app_to_connect_to.clone(),
             signin::QueryParams {
                 mail: None,
                 app_id: Some(app_to_connect_to.id),
-                requested_endpoint: Some(request_uri.to_string()),
+                requested_endpoint: Some(authorize_request_endpoint),
             },
         )
         .into_response())
@@ -145,4 +154,21 @@ async fn validate_client_id(
 
         None => Err(OpenIdConnectError::UnauthorizedClient(redirect_uri)),
     }
+}
+
+fn authorize_request_endpoint_with_params(
+    request_uri: Uri,
+    scope: String,
+    response_type: String,
+    client_id: String,
+    redirect_uri: String,
+) -> String {
+    format!(
+        "{}?scope={}&response_type={}&client_id={}&redirect_uri={}",
+        request_uri.path(),
+        url_escape::encode_component(&scope),
+        url_escape::encode_component(&response_type),
+        client_id,
+        url_escape::encode_component(&redirect_uri),
+    )
 }

@@ -23,8 +23,9 @@ use super::IdSession;
 pub struct SigninPage {
     mail: String,
     app: App,
-    requested_endpoint: Option<String>,
+    requested_endpoint: String,
     message: MessageBlock,
+    signup_link: String,
 }
 
 impl SigninPage {
@@ -35,18 +36,28 @@ impl SigninPage {
     ) -> Self {
         SigninPage {
             mail: "".to_owned(),
-            requested_endpoint: requested_endpoint,
-            app,
+            requested_endpoint: requested_endpoint.clone().unwrap_or("".to_owned()),
+            app: app.clone(),
             message,
+            signup_link: format!(
+                "/signup?app_id={}&requested_endpoint={}",
+                app.id,
+                url_escape::encode_component(&requested_endpoint.unwrap_or("".to_owned()))
+            ),
         }
     }
 
     pub fn for_app_from_query(app: App, params: QueryParams) -> Self {
         SigninPage {
             mail: params.mail.unwrap_or("".to_owned()),
-            requested_endpoint: params.requested_endpoint,
-            app,
+            requested_endpoint: params.requested_endpoint.clone().unwrap_or("".to_owned()),
+            app: app.clone(),
             message: MessageBlock::empty(),
+            signup_link: format!(
+                "/signup?app_id={}&requested_endpoint={}",
+                app.id,
+                url_escape::encode_component(&params.requested_endpoint.unwrap_or("".to_owned()))
+            ),
         }
     }
 
@@ -57,9 +68,14 @@ impl SigninPage {
     ) -> Self {
         SigninPage {
             mail: form.mail,
-            requested_endpoint: form.requested_endpoint,
-            app,
+            requested_endpoint: form.requested_endpoint.clone().unwrap_or("".to_owned()),
+            app: app.clone(),
             message,
+            signup_link: format!(
+                "/signup?app_id={}&requested_endpoint={}",
+                app.id,
+                url_escape::encode_component(&form.requested_endpoint.unwrap_or("".to_owned()))
+            ),
         }
     }
 }

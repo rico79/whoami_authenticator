@@ -22,7 +22,9 @@ pub struct SignupPage {
     birthday: String,
     mail: String,
     app: App,
+    requested_endpoint: String,
     message: MessageBlock,
+    signin_link: String,
 }
 
 impl SignupPage {
@@ -30,6 +32,7 @@ impl SignupPage {
         name: Option<String>,
         birthday: Option<String>,
         mail: Option<String>,
+        requested_endpoint: Option<String>,
         app: App,
         message: MessageBlock,
     ) -> Self {
@@ -37,8 +40,14 @@ impl SignupPage {
             name: name.unwrap_or("".to_owned()),
             birthday: birthday.unwrap_or("".to_owned()),
             mail: mail.unwrap_or("".to_owned()),
-            app,
+            app: app.clone(),
+            requested_endpoint: requested_endpoint.clone().unwrap_or("".to_owned()),
             message,
+            signin_link: format!(
+                "/signin?app_id={}&requested_endpoint={}",
+                app.id,
+                url_escape::encode_component(&requested_endpoint.unwrap_or("".to_owned()))
+            ),
         }
     }
 
@@ -47,6 +56,7 @@ impl SignupPage {
             params.name,
             params.birthday,
             params.mail,
+            params.requested_endpoint,
             app,
             MessageBlock::empty(),
         )
@@ -59,6 +69,7 @@ pub struct QueryParams {
     birthday: Option<String>,
     mail: Option<String>,
     app_id: Option<i32>,
+    requested_endpoint: Option<String>,
 }
 
 pub async fn get_handler(
@@ -89,6 +100,7 @@ pub struct SignupForm {
     password: String,
     confirm_password: String,
     app_id: i32,
+    requested_endpoint: Option<String>,
 }
 
 pub async fn post_handler(
@@ -112,6 +124,7 @@ pub async fn post_handler(
             Some(form.name.clone()),
             Some(form.birthday.clone()),
             Some(form.mail.clone()),
+            form.requested_endpoint.clone(),
             app.clone(),
             MessageBlock::new(Level::Error, "Inscription impossible", &error.to_string()),
         )
@@ -119,9 +132,12 @@ pub async fn post_handler(
 
     let _ = ConfirmationMail::from(&state, created_user.clone(), app.clone()).send();
 
-    if let Ok(redirect_with_session) =
-        IdSession::set_with_redirect_to_endpoint(cookies, &state, &created_user, None)
-    {
+    if let Ok(redirect_with_session) = IdSession::set_with_redirect_to_endpoint(
+        cookies,
+        &state,
+        &created_user,
+        form.requested_endpoint,
+    ) {
         Ok(redirect_with_session.into_response())
     } else {
         Ok(app.redirect_to().into_response())
