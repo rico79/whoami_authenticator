@@ -1,0 +1,45 @@
+<div x-data="{ open: false }" class="mx-auto max-w-xl mt-5">
+    <div class="mx-auto">
+        <label class="mx-auto text-sm leading-6 text-gray-600 text-center">
+            Je ne souhaite plus utiliser whoami et les apps reliées ?
+            <span x-on:click="open = ! open" class="font-semibold text-red-600">
+                Supprimer mon profil
+            </span>.
+        </label>
+    </div>
+
+    <div x-show="open" class="mx-auto max-w-xl mt-5">
+        {{ delete_message|escape("none") }}
+    </div>
+
+    <form x-show="open" class="mx-auto mt-8 max-w-xl sm:mt-8" action="/profile_delete" method="POST">
+        <div class="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+            <div class="sm:col-span-1">
+                <label for="delete_mail" class="block text-sm font-semibold leading-6 text-red-600">
+                    Adresse mail
+                </label>
+                <div class="mt-2.5">
+                    <input type="email" name="mail" id="delete_mail" placeholder="ex: yoda@dagobah.edu" required
+                        class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-red-600 sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <div class="sm:col-span-1">
+                <label for="delete_password" class="block text-sm font-semibold leading-6 text-red-600">
+                    Mot de passe
+                </label>
+                <div class="mt-2.5">
+                    <input type="password" id="delete_password" name="password" placeholder="*****************" required
+                        class="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-red-600 sm:text-sm sm:leading-6">
+                </div>
+            </div>
+
+            <div class="mt-3 sm:col-span-full">
+                <button type="submit"
+                    class="block w-full rounded-md bg-red-600 px-3.5 py-2.5 text-center text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600">
+                    Je supprime mon profil
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

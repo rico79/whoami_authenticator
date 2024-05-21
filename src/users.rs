@@ -157,6 +157,19 @@ impl User {
         Ok(user)
     }
 
+    pub async fn delete(&self, db_pool: &PgPool) -> Result<bool, AuthenticatorError> {
+        let query_result = sqlx::query("DELETE FROM users WHERE id = $1")
+            .bind(&self.id)
+            .execute(db_pool)
+            .await
+            .map_err(|error| {
+                error!("Deleting profile of {} -> {:?}", self.id, error);
+                AuthenticatorError::DatabaseError
+            })?;
+
+        Ok(query_result.rows_affected() > 0)
+    }
+
     pub async fn update_password(
         db_pool: &PgPool,
         user_id: &Uuid,
@@ -203,7 +216,7 @@ impl User {
                 mail_is_confirmed = true 
             WHERE 
                 id = $1 
-                and mail = $2 
+            AND mail = $2 
             RETURNING 
                 mail, 
                 mail_is_confirmed",

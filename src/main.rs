@@ -85,6 +85,10 @@ async fn http_server(
             "/profile",
             get(users::profile::get_handler).post(users::profile::update_profile_handler),
         )
+        .route(
+            "/profile_delete",
+            post(users::profile::profile_delete_handler),
+        )
         .route("/password", post(users::profile::update_password_handler))
         .route("/owned_apps", get(apps::my_apps::get_handler))
         .route(

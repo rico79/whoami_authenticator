@@ -1,5 +1,5 @@
 use askama_axum::{IntoResponse, Template};
-use axum::{extract::State, Form};
+use axum::{extract::State, response::Redirect, Form};
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 
@@ -22,6 +22,7 @@ pub struct ProfilePage {
     confirm_send_url: String,
     profile_message: MessageBlock,
     password_message: MessageBlock,
+    delete_block: ProfileDeleteBlock,
 }
 
 impl ProfilePage {
@@ -49,6 +50,7 @@ impl ProfilePage {
             confirm_send_url,
             profile_message,
             password_message: MessageBlock::empty(),
+            delete_block: ProfileDeleteBlock::new(),
         }
     }
 }
@@ -122,7 +124,6 @@ pub struct PasswordForm {
     confirm_password: String,
 }
 
-/// Profile update handler
 pub async fn update_password_handler(
     id_session: IdSession,
     State(state): State<AppState>,
@@ -142,4 +143,82 @@ pub async fn update_password_handler(
         "",
         "Votre password a bien été modifié",
     ))
+}
+
+#[derive(Clone, Debug, Template)]
+#[template(path = "users/profile_delete_block.html")]
+pub struct ProfileDeleteBlock {
+    delete_message: MessageBlock,
+}
+
+impl ProfileDeleteBlock {
+    pub fn new() -> Self {
+        Self {
+            delete_message: MessageBlock::new(Level::Error, "Attention cette action est définitive", "Si vous voulez vraiment supprimer votre profil, veuillez remplir votre adresse mail et votre mot de passe"),
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct DeleteForm {
+    mail: String,
+    password: String,
+}
+
+pub async fn profile_delete_handler(
+    id_session: IdSession,
+    State(state): State<AppState>,
+    Form(form): Form<DeleteForm>,
+) -> Result<Redirect, ProfilePage> {
+    let connected_user = User::select_from_id(&state.db_pool, id_session.user_id).await;
+
+    if let Err(error) = connected_user {
+        return Err(ProfilePage::from(
+            &state,
+            id_session,
+            None,
+            MessageBlock::new(
+                Level::Error,
+                "Impossible de supprimer le profil",
+                &error.to_string(),
+            ),
+        )
+        .await);
+    }
+
+    let connected_user = connected_user.unwrap();
+
+    if connected_user.mail != form.mail
+        || !connected_user
+            .password_match(form.password)
+            .unwrap_or(false)
+    {
+        return Err(ProfilePage::from(
+            &state,
+            id_session,
+            None,
+            MessageBlock::new(
+                Level::Error,
+                "Impossible de supprimer le profil",
+                "Les mail et mot de passe sont incorrects",
+            ),
+        )
+        .await);
+    }
+
+    match connected_user.delete(&state.db_pool).await {
+        Ok(true) => Ok(Redirect::to("/signout")),
+
+        _ => Err(ProfilePage::from(
+            &state,
+            id_session,
+            None,
+            MessageBlock::new(
+                Level::Error,
+                "Impossible de supprimer le profil",
+                "Erreur inattendue, réessayez plus tard",
+            ),
+        )
+        .await),
+    }
 }
