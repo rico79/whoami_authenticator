@@ -132,7 +132,16 @@ pub async fn post_handler(
                 form.clone(),
                 MessageBlock::new(Level::Error, "Connexion impossible", &error.to_string()),
             )
-        })?;
+        })?
+        .ok_or(SigninPage::for_app_from_form_with_message(
+            app_to_connect.clone(),
+            form.clone(),
+            MessageBlock::new(
+                Level::Error,
+                "Connexion impossible",
+                &AuthenticatorError::WrongCredentials.to_string(),
+            ),
+        ))?;
 
     let password_is_not_ok = !user
         .password_match(form.password.clone())

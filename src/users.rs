@@ -70,8 +70,8 @@ impl User {
     pub async fn select_from_mail(
         db_pool: &PgPool,
         mail: &String,
-    ) -> Result<Self, AuthenticatorError> {
-        let user: User = sqlx::query_as(
+    ) -> Result<Option<Self>, AuthenticatorError> {
+        let user: Option<Self> = sqlx::query_as(
             "SELECT 
                     id,
                     name, 
@@ -86,7 +86,7 @@ impl User {
                     mail = $1",
         )
         .bind(mail)
-        .fetch_one(db_pool)
+        .fetch_optional(db_pool)
         .await
         .map_err(|error| {
             error!("Selecting user from mail {} -> {:?}", mail, error);
